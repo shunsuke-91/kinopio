@@ -52,14 +52,15 @@ public class CharactorMove : MonoBehaviour
             || collision.gameObject.tag == "Player" && type == TYPE.ENEMY)
         {
             isMove = false;
+            //攻撃を始める
+            //攻撃アニメーションの再生
+            anim.SetBool("Attack", true);
+            //相手のHPを削る
+            HitPoint hitPoint = collision.gameObject.GetComponent<HitPoint>();
+            StartCoroutine(AttackAction(hitPoint));
+            //倒したらまた前に進む
         }
-        //攻撃を始める
-        //攻撃アニメーションの再生
-        anim.SetBool("Attack", true);
-        //相手のHPを削る
-        HitPoint hitPoint = collision.gameObject.GetComponent<HitPoint>();
-        StartCoroutine(AttackAction(hitPoint));
-        //倒したらまた前に進む
+
     }
 
     //Enterの条件終了後に呼ばれる関数
@@ -73,14 +74,23 @@ public class CharactorMove : MonoBehaviour
             anim.SetBool("Attack", false);
         }
     }
-    
+
     IEnumerator AttackAction(HitPoint hitPoint)
     {
-        while(hitPoint.hp > 0)
+        while (hitPoint != null && hitPoint.hp > 0)
         {
             yield return new WaitForSeconds(0.5f);
-            hitPoint.Damage(1);
-            
+            if (hitPoint != null)//destroyされた後を防ぐ、独自追加
+            {
+                hitPoint.Damage(1);
+            }
+
         }
     }
+    
+    public void DestroyEvent()
+    {
+        Destroy(gameObject);
+    }
 }
+

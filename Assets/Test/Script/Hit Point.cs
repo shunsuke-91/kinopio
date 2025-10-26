@@ -1,21 +1,37 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public class HitPoint : MonoBehaviour
 {
     public int hp;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private GameManager gm;
+
+    [SerializeField] UnityEvent OnDamageEvent;
+    [SerializeField] UnityEvent OnDestroyEvent;
+
+    void Awake()
     {
-        
+        gm = GameManager.instance;  
     }
 
     public void Damage(int damage)
     {
-        hp -= damage;
-
-        if(hp <= 0)
+        if (gm.isGame)
         {
-            Destroy(this.gameObject);
+            hp -= damage;
+
+            if (OnDamageEvent != null)
+            {
+                OnDamageEvent.Invoke();
+            }
+
+            if (hp <= 0)
+            {
+                if (OnDestroyEvent != null)
+                {
+                    OnDestroyEvent.Invoke();
+                }
+            }
         }
 
     }
