@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class EnemyController : MonoBehaviour
+public class EnemyController2 : MonoBehaviour
 {
     [SerializeField] SpriteRenderer[] enemys;
     // Start is called once before the first execution of Update after the MonoBehaviour is created

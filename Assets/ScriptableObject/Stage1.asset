@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c356e2a8ca54249f6bad83548007e421, type: 3}
+  m_Name: Stage1
+  m_EditorClassIdentifier: Assembly-CSharp::StageData
+  stageName: Stage1
+  description: Stage1
+  background: {fileID: 5756380681857427472, guid: 7ae82145d913f465ca52a41818c59bb8, type: 3}
+  bgm: {fileID: 0}
+  ruleType: 0
+  enemyPrefabs:
+  - {fileID: 6036634810090966126, guid: 152c8b8707b0b44f782d550aa0f397b0, type: 3}
+  spawnPositions:
+  - {x: -4.5, y: -2.5}
+  spawnDelays:
+  - 0
+  rewardGold: 100
+  rewardExp: 10
