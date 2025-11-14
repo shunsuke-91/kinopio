@@ -17,10 +17,25 @@ public class StageData : ScriptableObject
     [Header("バトルルール")]
     public StageRuleType ruleType = StageRuleType.OneWay;
 
-    [Header("敵の出現情報")]
+    [Header("敵プレハブ")]
     public GameObject[] enemyPrefabs;      // 敵の種類
-    public Vector2[] spawnPositions;       // 出現位置
     public float[] spawnDelays;            // 出現タイミング（秒）
+
+    [Header("Player 出撃設定")]
+    public GameObject[] playerPrefabs;               // 出撃可能ユニット
+
+
+    [Header("OneWay 出現範囲（A方式）")]
+    public float enemyX = 10f;      // 敵の固定X（右側）
+    public float playerX = -10f;    // プレイヤーの固定X（左側）
+    public float minY = -5f;        // ランダムY最小
+    public float maxY = 5f;         // ランダムY最大
+
+    [Header("BothSides / FreeField 用")]
+    public Vector2[] enemySpawnPositions;
+    public Vector2[] playerSpawnPositions;
+ 
+
 
     [Header("報酬など（任意）")]
     public int rewardGold = 100;

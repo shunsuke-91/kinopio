@@ -19,9 +19,15 @@ MonoBehaviour:
   ruleType: 0
   enemyPrefabs:
   - {fileID: 6036634810090966126, guid: 152c8b8707b0b44f782d550aa0f397b0, type: 3}
-  spawnPositions:
-  - {x: -4.5, y: -2.5}
   spawnDelays:
   - 0
+  playerPrefabs:
+  - {fileID: 2100118466339876958, guid: 0025cd22585dc47099610c2e84e695fe, type: 3}
+  enemyX: -5
+  playerX: 5.4
+  minY: -2.64
+  maxY: -1.24
+  enemySpawnPositions: []
+  playerSpawnPositions: []
   rewardGold: 100
   rewardExp: 10

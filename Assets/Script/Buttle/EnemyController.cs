@@ -1,38 +1,35 @@
 using UnityEngine;
 
-/// <summary>
-/// 敵キャラの基本行動制御クラス
-/// - HP管理（Inspectorで調整可能）
-/// - 死亡処理
-/// - ステージルールに応じた移動AI
-/// - 攻撃処理（TODO）
-/// </summary>
 public class EnemyController : MonoBehaviour
 {
-    [Header("パラメータ（Inspector調整可能）")]
+    [Header("パラメータ（Inspector調整用）")]
     [SerializeField] private float maxHP = 100f;
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private float attackPower = 10f;
 
     private float currentHP;
+    private Animator animator;
 
-    // ステージのルール（OneWay / BothSides / FreeField）
+    // ステージルール（BattleManager から渡される）
     private StageRuleType ruleType;
-
-    // OneWay・BothSides の進行方向
     private Vector2 moveDirection = Vector2.left;
 
-    // FreeField 用ターゲット（後で設定,例：プレイヤー拠点）
+    // 攻撃対象（Playerなど）
+    private Transform target;
+
+    // FreeField 用ターゲット（必要なら Inspector で設定）
     [SerializeField] private Transform freeFieldTarget;
 
+    private void Awake()
+    {
+        animator = GetComponent<Animator>();
+    }
 
-    // =============================
-    //   初期化
-    // =============================
+
     private void Start()
     {
         currentHP = maxHP;
-        SetupInitialDirection(); // BothSides向け
+        SetupInitialDirection();
     }
 
     /// <summary>
@@ -41,46 +38,49 @@ public class EnemyController : MonoBehaviour
     public void Initialize(StageRuleType stageRule)
     {
         ruleType = stageRule;
+        // 必要ならここで向きを決め直してもOK
+        SetupInitialDirection();
     }
 
 
-    // =============================
-    //   移動処理
-    // =============================
     private void Update()
     {
-        MoveBehavior();
-    }
-
-    private void MoveBehavior()
-    {
-        switch (ruleType)
+        if (target == null)
         {
-            case StageRuleType.OneWay:
-                MoveOneWay();
-                break;
-
-            case StageRuleType.BothSides:
-                MoveBothSides();
-                break;
-
-            case StageRuleType.FreeField:
-                MoveFreeField();
-                break;
+            // 攻撃対象がいない → 移動する
+            MoveBehavior();
+        }
+        else
+        {
+            // 攻撃対象がいる → 攻撃する
+            AttackBehavior();
         }
     }
 
-
-    // ▼ OneWay（横スクロール）
-    private void MoveOneWay()
+    // ============================
+    // 移動処理
+    // ============================
+    private void MoveBehavior()
     {
-        transform.Translate(Vector2.right * moveSpeed * Time.deltaTime);
-    }
+        // 移動中は Attack アニメを切る
+        animator.SetBool("Attack", false);
 
-    // ▼ BothSides（左右から）
-    private void MoveBothSides()
-    {
-        transform.Translate(moveDirection * moveSpeed * Time.deltaTime);
+        switch (ruleType)
+        {
+            case StageRuleType.OneWay:
+                transform.Translate(Vector2.right * moveSpeed * Time.deltaTime);
+                break;
+
+            case StageRuleType.BothSides:
+                transform.Translate(moveDirection * moveSpeed * Time.deltaTime);
+                break;
+
+            case StageRuleType.FreeField:
+                if (freeFieldTarget == null) return;
+                Vector2 dir = (freeFieldTarget.position - transform.position).normalized;
+                transform.Translate(dir * moveSpeed * Time.deltaTime);
+                break;
+        }
     }
 
     private void SetupInitialDirection()
@@ -94,31 +94,93 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    // ▼ FreeField（自由移動）
-    private void MoveFreeField()
-    {
-        if (freeFieldTarget == null)
-            return;
 
-        Vector2 dir = (freeFieldTarget.position - transform.position).normalized;
-        transform.Translate(dir * moveSpeed * Time.deltaTime);
+    // ============================
+    // 攻撃処理（今はフローだけ）
+    // ============================
+    private void AttackBehavior()
+    {
+        // ★ target 自体がないなら何もしない
+        if (target == null)
+        {
+            animator.SetBool("Attack", false);
+            return;
+        }
+
+        // ★ PlayerController が消えているなら攻撃終了
+        var player = target.GetComponent<PlayerController>();
+        if (player == null)
+        {
+            animator.SetBool("Attack", false);
+            target = null;
+            return;
+        }
+
+        // アニメを攻撃に切り替える
+        animator.SetBool("Attack", true);
+
+        // ダメージ処理はアニメーションイベントで行うため、ここでは何もしない
+    }
+
+    //AnimationEventで呼ばれる処理を追加
+    public void OnAttackHit()
+    {
+        // target が null なら攻撃しない
+        if (target == null) return;
+
+        var player = target.GetComponent<PlayerController>();
+        if (player == null) return;
+
+        // ダメージを与える
+        player.TakeDamage(attackPower);
     }
 
 
-    // =============================
-    //   HP管理
-    // =============================
+    // ============================
+    // 衝突判定（ぶつかったら攻撃開始）
+    // ============================
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        if (!collision.CompareTag("Player")) return;
+
+        PlayerController player = collision.GetComponent<PlayerController>();
+        if (player == null) return;
+
+        // 自分 → 相手の方向ベクトル
+        Vector2 toPlayer = (collision.transform.position - transform.position).normalized;
+
+        // Enemy = 右向き固定
+        Vector2 forward = transform.right;
+
+        // 方向判定（0以上なら正面）
+        float dot = Vector2.Dot(forward, toPlayer);
+
+        // 距離判定
+        float distance = Vector2.Distance(transform.position, collision.transform.position);
+
+        if (dot > 0 && distance < 1.2f)
+        {
+            target = collision.transform;
+        }
+    }
+
+
+    // ============================
+    // HP管理
+    // ============================
     public void TakeDamage(float damage)
     {
         currentHP -= damage;
 
-        if (currentHP <= 0)
+        if (currentHP <= 0f)
+        {
             Die();
+        }
     }
 
     private void Die()
     {
-        // TODO: 死亡演出
+        // TODO: 死亡エフェクト・SE など
         Destroy(gameObject);
     }
 }

@@ -14,7 +14,7 @@ using System.Collections;
 public class BattleManager : MonoBehaviour
 {
     [Header("ステージデータ")]
-    [SerializeField] private StageData currentStage;  // ← インスペクタでStageData.assetを設定
+    [SerializeField] private StageData currentStage;  
 
     [Header("UI / 演出関連")]
     [SerializeField] private Image backgroundImage;
@@ -77,32 +77,27 @@ public class BattleManager : MonoBehaviour
         // ============================
         // ① OneWay（横スクロール式）
         // ============================
-if (currentStage.ruleType == StageRuleType.OneWay)
-{
-    while (true) // ← ★無限ループで常に湧かせる
+    if (currentStage.ruleType == StageRuleType.OneWay)
     {
-        // 待ち時間（5秒）
-        yield return new WaitForSeconds(5f);
+        while (true)
+        {
+            yield return new WaitForSeconds(5f);
 
-        // 出す敵をランダムに選択（既存の enemyPrefabs を利用）
-        int index = Random.Range(0, currentStage.enemyPrefabs.Length);
+            float y = Random.Range(currentStage.minY, currentStage.maxY);
+            Vector2 spawnPos = new Vector2(currentStage.enemyX, y);
 
-        // 出現位置（今は StageData の spawnPositions をそのまま利用）
-        Vector2 spawnPos = currentStage.spawnPositions[
-            index % currentStage.spawnPositions.Length
-        ];
+            int index = Random.Range(0, currentStage.enemyPrefabs.Length);
 
-        var enemyObj = Instantiate(
-            currentStage.enemyPrefabs[index],
-            spawnPos,
-            Quaternion.identity
-        );
+            GameObject enemyObj = Instantiate(
+                currentStage.enemyPrefabs[index],
+                spawnPos,
+                Quaternion.identity
+            );
 
-        // 初期化（既存の処理）
-        enemyObj.GetComponent<EnemyController>()
-                .Initialize(currentStage.ruleType);
+            enemyObj.GetComponent<EnemyController>()
+                    .Initialize(currentStage.ruleType);
+        }
     }
-}
 
         // ============================
         // ② BothSides（左右交互に出現）
@@ -130,8 +125,8 @@ if (currentStage.ruleType == StageRuleType.OneWay)
             {
                 yield return new WaitForSeconds(currentStage.spawnDelays[i]);
 
-                Vector2 spawnPos = currentStage.spawnPositions[
-                    Random.Range(0, currentStage.spawnPositions.Length)
+                Vector2 spawnPos = currentStage.enemySpawnPositions[
+                    Random.Range(0, currentStage.enemySpawnPositions.Length)
                 ];
 
                 Instantiate(currentStage.enemyPrefabs[i], spawnPos, Quaternion.identity);
