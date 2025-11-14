@@ -35,11 +35,21 @@ public class EnemyController : MonoBehaviour
     /// <summary>
     /// BattleManager から呼び出される初期化メソッド
     /// </summary>
-    public void Initialize(StageRuleType stageRule)
+    public void Initialize(StageRuleType stageRule, DifficultySettings diff)
     {
         ruleType = stageRule;
         // 必要ならここで向きを決め直してもOK
         SetupInitialDirection();
+
+        // ★ HPを倍率適用
+        maxHP = Mathf.Ceil(maxHP * diff.hpMultiplier);
+        currentHP = maxHP;
+
+        // ★ 攻撃力を倍率適用
+        attackPower = Mathf.Ceil(attackPower * diff.attackPowerMultiplier);
+
+        // ★ 攻撃スピードを倍率適用（Animator.speed で反映）
+        animator.speed = diff.attackSpeedMultiplier;
     }
 
 

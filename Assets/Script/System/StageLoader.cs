@@ -7,4 +7,5 @@ using UnityEngine;
 public static class StageLoader
 {
     public static StageData selectedStage;
+    public static DifficultyType selectedDifficulty = DifficultyType.Normal;
 }

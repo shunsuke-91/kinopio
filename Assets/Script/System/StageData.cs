@@ -8,7 +8,6 @@ public class StageData : ScriptableObject
 {
     [Header("ステージの基本情報")]
     public string stageName = "ステージ名";
-    [TextArea] public string description = "ステージの説明文（任意）";
 
     [Header("ステージ演出")]
     public Sprite background;        // 背景画像
@@ -34,12 +33,50 @@ public class StageData : ScriptableObject
     [Header("BothSides / FreeField 用")]
     public Vector2[] enemySpawnPositions;
     public Vector2[] playerSpawnPositions;
- 
-
 
     [Header("報酬など（任意）")]
     public int rewardGold = 100;
     public int rewardExp = 10;
+
+
+    [Header("難易度")]
+    public DifficultyType difficulty = DifficultyType.Normal;
+
+    [Header("難易度設定（Normal / Hard / Hell）")]
+    public DifficultySettings normalSettings = new DifficultySettings
+    {
+        attackPowerMultiplier = 1f,
+        attackSpeedMultiplier = 1f,
+        hpMultiplier = 1f
+    };
+
+    public DifficultySettings hardSettings = new DifficultySettings
+    {
+        attackPowerMultiplier = 1.2f,
+        attackSpeedMultiplier = 1.2f,
+        hpMultiplier = 2f
+    };
+
+    public DifficultySettings hellSettings = new DifficultySettings
+    {
+        attackPowerMultiplier = 1.5f,
+        attackSpeedMultiplier = 1.5f,
+        hpMultiplier = 3f
+    };
+
+    // 現在選択されている難易度の設定を返す
+    public DifficultySettings GetDifficultySettings()
+    {
+        switch (difficulty)
+        {
+            case DifficultyType.Hard:
+                return hardSettings;
+            case DifficultyType.Hell:
+                return hellSettings;
+            default:
+                return normalSettings;
+        }
+    }
 }
 
 /// <summary>
@@ -50,4 +87,24 @@ public enum StageRuleType
     OneWay,      // 一方向（にゃんこ形式）
     BothSides,   // 両側から進攻
     FreeField    // 盤面全体で進攻
+}
+
+public enum DifficultyType
+{
+    Normal,
+    Hard,
+    Hell
+}
+
+[System.Serializable]
+public class DifficultySettings
+{
+    [Header("攻撃力倍率（敵の攻撃力に掛ける）")]
+    public float attackPowerMultiplier = 1f;
+
+    [Header("攻撃スピード倍率（Animator.speed に使う）")]
+    public float attackSpeedMultiplier = 1f;
+
+    [Header("HP倍率（敵のHPに掛ける）")]
+    public float hpMultiplier = 1f;
 }

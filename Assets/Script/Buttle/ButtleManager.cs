@@ -36,6 +36,9 @@ public class BattleManager : MonoBehaviour
     }
     private void Start()
     {
+        // 選んだ難易度をステージデータへ反映
+        currentStage.difficulty = StageLoader.selectedDifficulty;
+        
         LoadStageSettings();
         StartCoroutine(SpawnEnemies()); // 敵出現開始
         // TODO: バトル開始演出（フェードインなど）が必要ならここに書く
@@ -94,8 +97,14 @@ public class BattleManager : MonoBehaviour
                 Quaternion.identity
             );
 
-            enemyObj.GetComponent<EnemyController>()
-                    .Initialize(currentStage.ruleType);
+            // ステージの難易度設定を取得
+            DifficultySettings diff = currentStage.GetDifficultySettings();
+
+            // EnemyController を取得
+            var ec = enemyObj.GetComponent<EnemyController>();
+
+            // 難易度設定を渡す
+            ec.Initialize(currentStage.ruleType, diff);
         }
     }
 
