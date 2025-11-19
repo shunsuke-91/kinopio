@@ -34,6 +34,18 @@ public class StageData : ScriptableObject
     public Vector2[] enemySpawnPositions;
     public Vector2[] playerSpawnPositions;
 
+    // Base の設定（ステージごとに違う）
+    [Header("Base 設定")]
+    public GameObject playerBasePrefab;
+    public GameObject enemyBasePrefab;
+
+    public Vector2 playerBasePosition; 
+    public Vector2 enemyBasePosition;
+
+    [Header("Base HP（ステージ固有）")]
+    public float playerBaseHP = 300f;
+    public float enemyBaseHP = 300f;
+
     [Header("報酬など（任意）")]
     public int rewardGold = 100;
     public int rewardExp = 10;
@@ -106,5 +118,5 @@ public class DifficultySettings
     public float attackSpeedMultiplier = 1f;
 
     [Header("HP倍率（敵のHPに掛ける）")]
-    public float hpMultiplier = 1f;
+    public float hpMultiplier = 1f;// ← Base HP や Enemy HP にも使える
 }

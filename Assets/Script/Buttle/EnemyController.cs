@@ -7,6 +7,10 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private float attackPower = 10f;
 
+    [Header("エフェクト")]
+    [SerializeField] private GameObject hitEffect;    // 攻撃ヒット時
+    [SerializeField] private GameObject deathEffect;  // 死亡時
+
     private float currentHP;
     private Animator animator;
 
@@ -117,9 +121,12 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        // ★ PlayerController が消えているなら攻撃終了
+        //  PlayerController か BaseController のどちらかを取得
         var player = target.GetComponent<PlayerController>();
-        if (player == null)
+        var baseCtrl = target.GetComponent<BaseController>();
+
+        // どちらもなければ攻撃停止
+        if (player == null && baseCtrl == null)
         {
             animator.SetBool("Attack", false);
             target = null;
@@ -135,14 +142,18 @@ public class EnemyController : MonoBehaviour
     //AnimationEventで呼ばれる処理を追加
     public void OnAttackHit()
     {
-        // target が null なら攻撃しない
         if (target == null) return;
 
         var player = target.GetComponent<PlayerController>();
-        if (player == null) return;
+        var baseCtrl = target.GetComponent<BaseController>();
 
-        // ダメージを与える
-        player.TakeDamage(attackPower);
+        if (player != null)
+            player.TakeDamage(attackPower);
+        else if (baseCtrl != null)
+            baseCtrl.TakeDamage(attackPower); // ★ Base にダメージ
+
+        if (hitEffect != null)
+            Instantiate(hitEffect, target.position, Quaternion.identity);
     }
 
 
@@ -151,26 +162,40 @@ public class EnemyController : MonoBehaviour
     // ============================
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if (!collision.CompareTag("Player")) return;
-
-        PlayerController player = collision.GetComponent<PlayerController>();
-        if (player == null) return;
-
-        // 自分 → 相手の方向ベクトル
-        Vector2 toPlayer = (collision.transform.position - transform.position).normalized;
-
-        // Enemy = 右向き固定
-        Vector2 forward = transform.right;
-
-        // 方向判定（0以上なら正面）
-        float dot = Vector2.Dot(forward, toPlayer);
-
-        // 距離判定
-        float distance = Vector2.Distance(transform.position, collision.transform.position);
-
-        if (dot > 0 && distance < 1.2f)
+        // ========== ① PlayerBase（拠点） ==========
+        if (collision.CompareTag("PlayerBase"))
         {
-            target = collision.transform;
+            // Base は動かないので方向判定なしでOK
+            var baseCtrl = collision.GetComponent<BaseController>();
+            if (baseCtrl != null)
+            {
+                target = collision.transform;
+            }
+            return;
+        }
+
+        // ========== ② Player（従来の処理） ==========
+        if (collision.CompareTag("Player"))
+        {
+            PlayerController player = collision.GetComponent<PlayerController>();
+            if (player == null) return;
+
+            // 自分 → 相手の方向ベクトル
+            Vector2 toPlayer = (collision.transform.position - transform.position).normalized;
+
+            // Enemy = 右向き固定
+            Vector2 forward = transform.right;
+
+            // 方向判定（0以上なら正面）
+            float dot = Vector2.Dot(forward, toPlayer);
+
+            // 距離判定
+            float distance = Vector2.Distance(transform.position, collision.transform.position);
+
+            if (dot > 0 && distance < 1.2f)
+            {
+                target = collision.transform;
+            }
         }
     }
 
@@ -188,9 +213,37 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    private void Die()
+    public Transform CurrentTarget => target;
+
+    public void ClearTarget()
     {
-        // TODO: 死亡エフェクト・SE など
+        target = null;
+        animator.SetBool("Attack", false);
+    }
+
+    private void Die()
+        {
+                // 攻撃されていた Player の target を解除する
+        var myCollider = GetComponent<Collider2D>();
+        if (myCollider != null)
+        {
+            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 2f);
+            foreach (var h in hits)
+            {
+                if (h.CompareTag("Player"))
+                {
+                    var pc = h.GetComponent<PlayerController>();
+                    if (pc != null && pc.CurrentTarget == transform)
+                    {
+                        pc.ClearTarget();
+                    }
+                }
+            }
+        }
+
+        if (deathEffect != null)
+            Instantiate(deathEffect, transform.position, Quaternion.identity);
+
         Destroy(gameObject);
     }
 }

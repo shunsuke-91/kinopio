@@ -201,8 +201,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0fc89ecf1de84b46aec78776a9dc0fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  maxHP: 10
+  maxHP: 3
   moveSpeed: 2
   attackPower: 1
-  attackInterval: 2
+  hitEffect: {fileID: 1015576372813440, guid: fbdb0b280789440678aa36806de97767, type: 3}
+  deathEffect: {fileID: 1856981849721026, guid: 4679b7d4913ed45dcadbf24be51fcd6d, type: 3}
   freeFieldTarget: {fileID: 0}

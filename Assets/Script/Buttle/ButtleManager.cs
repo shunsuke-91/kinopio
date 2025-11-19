@@ -20,6 +20,10 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private Image backgroundImage;
     [SerializeField] private AudioSource bgmSource;
 
+    // ★ Base 実体（StageData から生成したものを保持）
+    private BaseController playerBase;
+    private BaseController enemyBase;
+
     // 必要ならUI（Wave表示など）をここに追加  
     // [SerializeField] private Text waveText;
 
@@ -34,12 +38,20 @@ public class BattleManager : MonoBehaviour
         if (StageLoader.selectedStage != null)
             currentStage = StageLoader.selectedStage;
     }
+
     private void Start()
     {
+        if (currentStage == null)
+        {
+            Debug.LogError("BattleManager: currentStage が設定されていません！");
+            return;
+        }
+
         // 選んだ難易度をステージデータへ反映
         currentStage.difficulty = StageLoader.selectedDifficulty;
         
         LoadStageSettings();
+        SpawnBases();
         StartCoroutine(SpawnEnemies()); // 敵出現開始
         // TODO: バトル開始演出（フェードインなど）が必要ならここに書く
     }
@@ -50,12 +62,6 @@ public class BattleManager : MonoBehaviour
     // ==========================================
     private void LoadStageSettings()
     {
-        if (currentStage == null)
-        {
-            Debug.LogError("StageData が設定されていません！");
-            return;
-        }
-
         // 背景
         if (backgroundImage != null && currentStage.background != null)
             backgroundImage.sprite = currentStage.background;
@@ -80,33 +86,34 @@ public class BattleManager : MonoBehaviour
         // ============================
         // ① OneWay（横スクロール式）
         // ============================
-    if (currentStage.ruleType == StageRuleType.OneWay)
-    {
-        while (true)
+        if (currentStage.ruleType == StageRuleType.OneWay)
         {
-            yield return new WaitForSeconds(5f);
+            while (true)
+            {
+                yield return new WaitForSeconds(5f);
 
-            float y = Random.Range(currentStage.minY, currentStage.maxY);
-            Vector2 spawnPos = new Vector2(currentStage.enemyX, y);
+                float y = Random.Range(currentStage.minY, currentStage.maxY);
+                Vector2 spawnPos = new Vector2(currentStage.enemyX, y);
 
-            int index = Random.Range(0, currentStage.enemyPrefabs.Length);
+                int index = Random.Range(0, currentStage.enemyPrefabs.Length);
 
-            GameObject enemyObj = Instantiate(
-                currentStage.enemyPrefabs[index],
-                spawnPos,
-                Quaternion.identity
-            );
+                GameObject enemyObj = Instantiate(
+                    currentStage.enemyPrefabs[index],
+                    spawnPos,
+                    Quaternion.identity
+                );
 
-            // ステージの難易度設定を取得
-            DifficultySettings diff = currentStage.GetDifficultySettings();
+                // ステージの難易度設定を取得
+                DifficultySettings diff = currentStage.GetDifficultySettings();
 
-            // EnemyController を取得
-            var ec = enemyObj.GetComponent<EnemyController>();
-
-            // 難易度設定を渡す
-            ec.Initialize(currentStage.ruleType, diff);
+                // EnemyController を取得して難易度を渡す
+                var ec = enemyObj.GetComponent<EnemyController>();
+                if (ec != null)
+                {
+                    ec.Initialize(currentStage.ruleType, diff);
+                }
+            }
         }
-    }
 
         // ============================
         // ② BothSides（左右交互に出現）
@@ -150,9 +157,72 @@ public class BattleManager : MonoBehaviour
 
 
     // ==========================================
-    //  バトル終了管理（クリア／敗北）
+    //  プレイヤーおよびエネミーベースの生成
     // ==========================================
-    // ※まだ仕様が固まってないのでコメントだけ
+
+    private void SpawnBases()
+    {
+        DifficultySettings diff = currentStage.GetDifficultySettings();
+
+        // PlayerBase
+        if (currentStage.playerBasePrefab != null)
+        {
+            var pb = Instantiate(
+                currentStage.playerBasePrefab,
+                currentStage.playerBasePosition,
+                Quaternion.identity
+            );
+            playerBase = pb.GetComponent<BaseController>();
+            if (playerBase != null)
+            {
+                // Base の HP はステージ固有HP × 難易度倍率
+                float hp = currentStage.playerBaseHP * diff.hpMultiplier;
+                playerBase.Initialize(hp);
+                playerBase.OnBaseDestroyed += OnPlayerBaseDestroyed;
+            }
+            else
+            {
+                Debug.LogError("BattleManager: PlayerBasePrefab に BaseController がついていません");
+            }
+        }
+
+        // EnemyBase
+        if (currentStage.enemyBasePrefab != null)
+        {
+            var eb = Instantiate(
+                currentStage.enemyBasePrefab,
+                currentStage.enemyBasePosition,
+                Quaternion.identity
+            );
+            enemyBase = eb.GetComponent<BaseController>();
+            if (enemyBase != null)
+            {
+                float hp = currentStage.enemyBaseHP * diff.hpMultiplier;
+                enemyBase.Initialize(hp);
+                enemyBase.OnBaseDestroyed += OnEnemyBaseDestroyed;
+            }
+            else
+            {
+                Debug.LogError("BattleManager: EnemyBasePrefab に BaseController がついていません");
+            }
+        }
+    }
+
+    private void OnPlayerBaseDestroyed()
+    {
+        Debug.Log("Game Over!");
+        // TODO：リザルトへ遷移
+    }
+
+    private void OnEnemyBaseDestroyed()
+    {
+        Debug.Log("Stage Clear!");
+        // TODO：リザルトへ遷移
+    }
+
+
+    // ==========================================
+    //  バトル終了管理（クリア／敗北）
     // ==========================================
     private void CheckBattleEnd()
     {

@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - Enemy
+  - EnemyBase
+  - PlayerBase
   layers:
   - Default
   - TransparentFX
@@ -42,16 +44,16 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: New Layer 1
+  - name: 'Background '
     uniqueID: 592238297
     locked: 0
-  - name: New Layer 2
+  - name: charactor
     uniqueID: 3984312451
     locked: 0
-  - name: New Layer 3
+  - name: Effects
     uniqueID: 810073273
     locked: 0
-  - name: New Layer 4
+  - name: UI
     uniqueID: 1250221603
     locked: 0
   - name: New Layer 5
