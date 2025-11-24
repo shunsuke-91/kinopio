@@ -143,6 +143,7 @@ public class EnemyController : MonoBehaviour
     public void OnAttackHit()
     {
         if (target == null) return;
+        if (target.gameObject == null) return;   // ★ Destroy後の対策
 
         var player = target.GetComponent<PlayerController>();
         var baseCtrl = target.GetComponent<BaseController>();
@@ -151,9 +152,12 @@ public class EnemyController : MonoBehaviour
             player.TakeDamage(attackPower);
         else if (baseCtrl != null)
             baseCtrl.TakeDamage(attackPower); // ★ Base にダメージ
+        else
+            return;
 
-        if (hitEffect != null)
-            Instantiate(hitEffect, target.position, Quaternion.identity);
+        // target が消えていない場合だけエフェクト
+        if (hitEffect != null && target != null && target.gameObject != null)
+        Instantiate(hitEffect, target.position, Quaternion.identity);
     }
 
 

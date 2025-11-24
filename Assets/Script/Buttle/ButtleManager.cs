@@ -206,6 +206,17 @@ public class BattleManager : MonoBehaviour
                 Debug.LogError("BattleManager: EnemyBasePrefab に BaseController がついていません");
             }
         }
+        
+        // UI に反映する
+        var ui = FindFirstObjectByType<BaseHPUIController>();
+        if (ui != null)
+        {
+            ui.Setup(playerBase, enemyBase);
+        }
+        else
+        {
+            Debug.LogError("BattleManager: BaseHPUIController がシーン内に見つかりません");
+        }
     }
 
     private void OnPlayerBaseDestroyed()

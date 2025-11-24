@@ -106,6 +106,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseController
   maxHP: 100
+  destroyEffect: {fileID: 1856981849721026, guid: 4679b7d4913ed45dcadbf24be51fcd6d, type: 3}
 --- !u!61 &8483555051116702842
 BoxCollider2D:
   m_ObjectHideFlags: 0
