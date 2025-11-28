@@ -386,7 +386,7 @@ MonoBehaviour:
   moveSpeed: 1
   attackPower: 1
   hitEffect: {fileID: 1325963772890730, guid: bad4a586d8c2b4fc1adb20c80b9b13a1, type: 3}
-  deathEffect: {fileID: 1820505111244332, guid: fbc33af47af4d490ab2919530c88fa53, type: 3}
+  deathEffect: {fileID: 1933607824282986, guid: 3c87503deada045dfad4b3f34d340ae0, type: 3}
 --- !u!212 &2335822386450776970
 SpriteRenderer:
   m_ObjectHideFlags: 0

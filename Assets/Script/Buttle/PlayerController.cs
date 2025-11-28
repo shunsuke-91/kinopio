@@ -48,7 +48,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
     // ============================
     // 移動処理
     // ============================
@@ -75,7 +74,6 @@ public class PlayerController : MonoBehaviour
     {
         if (ruleType == StageRuleType.BothSides)
         {
-            // Player は基本味方なので左側に出る前提として右に動く
             if (transform.position.x < 0)
                 moveDirection = Vector2.right;
             else
@@ -83,20 +81,17 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
     // ============================
     // 攻撃処理
     // ============================
     private void AttackBehavior()
     {
-        // ★ 敵が消えていたら攻撃停止
         if (target == null)
         {
             animator.SetBool("Attack", false);
             return;
         }
 
-        // ★ 敵のコンポーネントが消えていたら攻撃停止
         var enemy = target.GetComponent<EnemyController>();
         var baseCtrl = target.GetComponent<BaseController>();
 
@@ -107,9 +102,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // ★ 一定間隔で攻撃する処理
         animator.SetBool("Attack", true);
-
     }
 
     public void OnAttackHit()
@@ -119,10 +112,8 @@ public class PlayerController : MonoBehaviour
         var enemy = target.GetComponent<EnemyController>();
         var baseCtrl = target.GetComponent<BaseController>();
 
-        // ★ Enemy or Base どちらかにヒットさせる
         if (enemy != null)
         {
-            // ヒットエフェクト
             if (hitEffect != null)
                 Instantiate(hitEffect, target.position, Quaternion.identity);
 
@@ -132,15 +123,12 @@ public class PlayerController : MonoBehaviour
 
         if (baseCtrl != null)
         {
-            // ヒットエフェクト
             if (hitEffect != null)
                 Instantiate(hitEffect, target.position, Quaternion.identity);
 
             baseCtrl.TakeDamage(attackPower);
             return;
         }
-
-        // ★ どちらにも該当しない場合は何もしない
     }
 
     // ============================
@@ -148,9 +136,6 @@ public class PlayerController : MonoBehaviour
     // ============================
     private void OnTriggerStay2D(Collider2D collision)
     {
-        // ================================
-        // ① EnemyBase（拠点）に触れた場合
-        // ================================
         if (collision.CompareTag("EnemyBase"))
         {
             var baseCtrl = collision.GetComponent<BaseController>();
@@ -161,34 +146,23 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // ================================
-        // ② Enemy（通常の敵）に触れた場合 ← 元の処理
-        // ================================
         if (collision.CompareTag("Enemy"))
         {
             EnemyController enemy = collision.GetComponent<EnemyController>();
             if (enemy == null) return;
 
-            // 自分 → 相手
             Vector2 toEnemy = (collision.transform.position - transform.position).normalized;
-
-            // Player は左向き（前方向 = -transform.right）
             Vector2 forward = -transform.right;
 
-            // 方向判定
             float dot = Vector2.Dot(forward, toEnemy);
-
-            // 距離判定
             float distance = Vector2.Distance(transform.position, collision.transform.position);
 
-            // 距離 1.2以内、かつ正面なら攻撃対象にする
             if (dot > 0 && distance < 1.2f)
             {
                 target = collision.transform;
             }
         }
     }
-
 
     // ============================
     // HP処理
@@ -211,7 +185,6 @@ public class PlayerController : MonoBehaviour
 
     private void Die()
     {
-        // 周囲の敵の target を解除
         var myCollider = GetComponent<Collider2D>();
         if (myCollider != null)
         {

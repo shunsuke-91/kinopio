@@ -29,7 +29,7 @@ MonoBehaviour:
   enemySpawnPositions: []
   playerSpawnPositions: []
   playerBasePrefab: {fileID: 7248861826193360083, guid: 66d48bd7b4a3e43b88ca440bdbe63dd1, type: 3}
-  enemyBasePrefab: {fileID: 6706485894875813900, guid: f75a1c34c06944d8cbbcc4a175e21cad, type: 3}
+  enemyBasePrefab: {fileID: 8614278126073266721, guid: 305511468da7e41d1897e1da783d7d4b, type: 3}
   playerBasePosition: {x: 8.62, y: 0.2}
   enemyBasePosition: {x: -6.32, y: -1.99}
   playerBaseHP: 100

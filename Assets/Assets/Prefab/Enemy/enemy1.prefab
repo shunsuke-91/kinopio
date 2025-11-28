@@ -204,6 +204,6 @@ MonoBehaviour:
   maxHP: 3
   moveSpeed: 2
   attackPower: 1
-  hitEffect: {fileID: 1015576372813440, guid: fbdb0b280789440678aa36806de97767, type: 3}
-  deathEffect: {fileID: 1856981849721026, guid: 4679b7d4913ed45dcadbf24be51fcd6d, type: 3}
+  hitEffect: {fileID: 1325963772890730, guid: bad4a586d8c2b4fc1adb20c80b9b13a1, type: 3}
+  deathEffect: {fileID: 1007203445618474, guid: fca85770e18d846bfb02e19852a35a54, type: 3}
   freeFieldTarget: {fileID: 0}
