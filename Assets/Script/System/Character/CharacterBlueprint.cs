@@ -1,9 +1,10 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Game/CharacterBlueprint")]
+[CreateAssetMenu(fileName = "CharacterBlueprint", menuName = "Characters/Blueprint", order = 0)]
 public class CharacterBlueprint : ScriptableObject
 {
-    public string id;      // 固有ID
-    public Sprite icon;    // 一覧に出すアイコン
-    public GameObject prefab; // 戦闘で使うプレハブ
+    [Header("Character Info")]
+    public Sprite icon;
+    public string characterName;
+    public string blueprintID;
 }

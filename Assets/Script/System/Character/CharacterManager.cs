@@ -1,55 +1,23 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class CharacterManager : MonoBehaviour
 {
-    public static CharacterManager Instance;
+    public static CharacterManager Instance { get; private set; }
 
-    public List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
+    [Header("最初に所持するキャラの Blueprint")]
+    [SerializeField] private CharacterBlueprint defaultBlueprint;
+
+    public List<CharacterInstance> ownedCharacters = new();
 
     private void Awake()
     {
-        if (Instance == null)
+        Instance = this;
+
+        // ★ゲーム開始時に最初の1体を自動所持
+        if (ownedCharacters.Count == 0)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            Load(); // ★保存データを読み込む
+            ownedCharacters.Add(new CharacterInstance(defaultBlueprint));
         }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    public void AddCharacter(CharacterBlueprint bp)
-    {
-        CharacterInstance ins = new CharacterInstance
-        {
-            instanceID = System.Guid.NewGuid().ToString(),
-            blueprintID = bp.id
-        };
-
-        ownedCharacters.Add(ins);
-        Save();
-    }
-
-    public void Save()
-    {
-        string json = JsonUtility.ToJson(new Wrapper { list = ownedCharacters });
-        PlayerPrefs.SetString("CHAR_DATA", json);
-    }
-
-    public void Load()
-    {
-        string json = PlayerPrefs.GetString("CHAR_DATA", "");
-        if (json == "") return;
-
-        ownedCharacters = JsonUtility.FromJson<Wrapper>(json).list;
-    }
-
-    [System.Serializable]
-    private class Wrapper
-    {
-        public List<CharacterInstance> list;
     }
 }

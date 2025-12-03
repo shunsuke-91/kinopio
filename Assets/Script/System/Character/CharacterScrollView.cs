@@ -1,66 +1,64 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System;
+using TMPro;
 
 public class CharacterScrollView : MonoBehaviour
 {
-    [SerializeField] private Transform content;              // ScrollView の Content
-    [SerializeField] private GameObject characterButtonPrefab; // ボタンのプレハブ
+    [SerializeField] private CharacterManager characterManager;
+    [SerializeField] private GameObject characterButtonPrefab;
+    [SerializeField] private Transform contentParent;
 
-    /// <summary>
-    /// キャラボタンが押されたときに通知するイベント
-    /// （外側のスクリプトから購読して使う）
-    /// </summary>
-    public Action<CharacterInstance> OnCharacterSelected;
+    private void Awake()
+    {
+        if (characterManager == null)
+        {
+            characterManager = Object.FindFirstObjectByType<CharacterManager>();
+        }
+    }
 
-    /// <summary>
-    /// 所持キャラ一覧を ScrollView に並べ直す
-    /// </summary>
+    private void Start()
+    {
+        Refresh();
+    }
+
     public void Refresh()
     {
-        if (content == null || characterButtonPrefab == null)
+        if (contentParent == null || characterButtonPrefab == null || characterManager == null)
         {
-            Debug.LogError("CharacterScrollView: content か characterButtonPrefab が設定されていません");
             return;
         }
 
-        if (CharacterManager.Instance == null)
+        for (int i = contentParent.childCount - 1; i >= 0; i--)
         {
-            Debug.LogError("CharacterScrollView: CharacterManager.Instance が見つかりません");
-            return;
+            Destroy(contentParent.GetChild(i).gameObject);
         }
 
-        // いったん中身をクリア
-        foreach (Transform child in content)
+        foreach (var character in characterManager.ownedCharacters)
         {
-            Destroy(child.gameObject);
-        }
-
-        // 所持キャラを順番にボタンとして生成
-        foreach (var character in CharacterManager.Instance.ownedCharacters)
-        {
-            // ボタン生成
-            var btnObj = Instantiate(characterButtonPrefab, content);
-
-            // もしボタン内に Text があれば、とりあえず ToString() を表示しておく
-            // （CharacterInstance が ToString をオーバーライドしていなければ
-            //  後で好きな表示に差し替えてください）
-            var text = btnObj.GetComponentInChildren<Text>();
-            if (text != null)
+            if (character?.Blueprint == null)
             {
-                text.text = character != null ? character.ToString() : "キャラ";
+                continue;
             }
 
-            // ボタン押下時の処理を登録
-            var button = btnObj.GetComponent<Button>();
+            var buttonObject = Instantiate(characterButtonPrefab, contentParent);
+            var image = buttonObject.GetComponentInChildren<Image>();
+            var text = buttonObject.GetComponentInChildren<TextMeshProUGUI>();
+            var button = buttonObject.GetComponent<Button>();
+
+            if (image != null)
+            {
+                image.sprite = character.Blueprint.icon;
+            }
+
+            if (text != null)
+            {
+                text.text = character.Blueprint.characterName;
+            }
+
             if (button != null)
             {
-                var captured = character; // クロージャ対策
-                button.onClick.AddListener(() =>
-                {
-                    Debug.Log("選択されたキャラ: " + captured);
-                    OnCharacterSelected?.Invoke(captured);
-                });
+                string nameCopy = character.Blueprint.characterName;
+                button.onClick.AddListener(() => Debug.Log($"Selected character: {nameCopy}"));
             }
         }
     }

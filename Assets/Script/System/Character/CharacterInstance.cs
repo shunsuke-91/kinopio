@@ -1,6 +1,15 @@
-[System.Serializable]
+using System;
+using UnityEngine;
+
+[Serializable]
 public class CharacterInstance
 {
-    public string instanceID;    // UUIDでユニークID
-    public string blueprintID;   // どの設計図から作ったか
+    [SerializeField] private CharacterBlueprint blueprint;
+
+    public CharacterBlueprint Blueprint => blueprint;
+
+    public CharacterInstance(CharacterBlueprint characterBlueprint)
+    {
+        blueprint = characterBlueprint;
+    }
 }

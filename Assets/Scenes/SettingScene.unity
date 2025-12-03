@@ -362,7 +362,7 @@ GameObject:
   - component: {fileID: 335892251}
   - component: {fileID: 335892250}
   m_Layer: 5
-  m_Name: Button
+  m_Name: ButtleButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -545,6 +545,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 392226564}
   m_CullTransparentMesh: 1
+--- !u!1 &458969181
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 458969183}
+  - component: {fileID: 458969182}
+  m_Layer: 0
+  m_Name: CharacterScrollView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &458969182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 458969181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c76e5dfcf2dc4331b43145bf6dd4036, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterScrollView
+  characterManager: {fileID: 1713286698}
+  characterButtonPrefab: {fileID: 3631589226060356392, guid: b991a04ddc3174f3283b723481246da1, type: 3}
+  contentParent: {fileID: 577841051}
+--- !u!4 &458969183
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 458969181}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.82196, y: 6.52957, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &492530356
 GameObject:
   m_ObjectHideFlags: 0
@@ -703,7 +750,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1374862953}
   m_Direction: 2
   m_Value: 1
-  m_Size: 1
+  m_Size: 0.99917465
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -778,7 +825,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -0.000032307038}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &581134629
@@ -1019,7 +1066,7 @@ GameObject:
   - component: {fileID: 1094880117}
   - component: {fileID: 1094880118}
   m_Layer: 5
-  m_Name: SlotGroup
+  m_Name: TeamSlots
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1162,9 +1209,8 @@ GameObject:
   - component: {fileID: 1228836718}
   - component: {fileID: 1228836717}
   - component: {fileID: 1228836716}
-  - component: {fileID: 1228836719}
   m_Layer: 5
-  m_Name: Scroll View
+  m_Name: ScrollView_Characters
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1177,19 +1223,19 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1228836714}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.60225, y: 0.60225, z: 0.60225}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1681516459}
   - {fileID: 1619535434}
   - {fileID: 571213541}
-  m_Father: {fileID: 1747272299}
+  m_Father: {fileID: 2053828546}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -364.52, y: -3.64}
+  m_AnchoredPosition: {x: -347.03223, y: -156.19218}
   m_SizeDelta: {x: 1556.03, y: 980.09}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1228836716
@@ -1260,20 +1306,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1228836714}
   m_CullTransparentMesh: 1
---- !u!114 &1228836719
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1228836714}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0fe4281ceb7a407a8e1dabb80b46393, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterScrollView
-  content: {fileID: 577841051}
-  characterButtonPrefab: {fileID: 3631589226060356392, guid: b991a04ddc3174f3283b723481246da1, type: 3}
 --- !u!1 &1272406790
 GameObject:
   m_ObjectHideFlags: 0
@@ -1786,8 +1818,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 492530358}
   m_HandleRect: {fileID: 492530357}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 1
+  m_Value: 1
+  m_Size: 0.99999994
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1929,29 +1961,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1713286697}
-  - component: {fileID: 1713286696}
+  - component: {fileID: 1713286698}
   m_Layer: 0
-  m_Name: GamManager
+  m_Name: CharacterManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1713286696
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1713286695}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 49d2834f72d8a4ed2a43b2a8c34cce30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
-  ownedCharacters:
-  - instanceID: 
-    blueprintID: 
 --- !u!4 &1713286697
 Transform:
   m_ObjectHideFlags: 0
@@ -1967,82 +1984,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1747272298
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1747272299}
-  - component: {fileID: 1747272301}
-  - component: {fileID: 1747272300}
-  m_Layer: 5
-  m_Name: Charactorlist
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1747272299
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1747272298}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.60225, y: 0.60225, z: 0.60225}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1228836715}
-  m_Father: {fileID: 2053828546}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -127.5, y: -154}
-  m_SizeDelta: {x: 466.59, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1747272300
+--- !u!114 &1713286698
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1747272298}
+  m_GameObject: {fileID: 1713286695}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 2d0e7b1f1acf541abbb02402e7e07551, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1747272301
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1747272298}
-  m_CullTransparentMesh: 1
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
+  defaultBlueprint: {fileID: 11400000, guid: 589b4c96fc4d94789b3240a0143353e3, type: 2}
+  ownedCharacters: []
 --- !u!1 &1751932518
 GameObject:
   m_ObjectHideFlags: 0
@@ -2305,8 +2260,8 @@ RectTransform:
   - {fileID: 1275743023}
   - {fileID: 581134630}
   - {fileID: 1920126141}
+  - {fileID: 1228836715}
   - {fileID: 1094880117}
-  - {fileID: 1747272299}
   - {fileID: 335892249}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2359,3 +2314,4 @@ SceneRoots:
   - {fileID: 2053828546}
   - {fileID: 1490998596}
   - {fileID: 1713286697}
+  - {fileID: 458969183}
