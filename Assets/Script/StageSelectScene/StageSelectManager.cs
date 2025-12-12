@@ -45,14 +45,14 @@ public class StageSelectManager : MonoBehaviour
             return;
         }
 
-        // 選んだステージデータを BattleScene に渡す
+        // 選んだステージデータを保存（Static のままでOK）
         StageLoader.selectedStage = stageList[selectedStageIndex];
 
         // 選んだ難易度を保存
         StageLoader.selectedDifficulty = (DifficultyType)diffIndex;
 
-        // バトルシーンへ
-        SceneManager.LoadScene("BattleScene");
+        // ここを BattleScene ではなく「編成シーン」に変更
+        SceneManager.LoadScene("SettingScene");
     }
 
 

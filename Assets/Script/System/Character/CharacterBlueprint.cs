@@ -7,4 +7,7 @@ public class CharacterBlueprint : ScriptableObject
     public Sprite icon;
     public string characterName;
     public string blueprintID;
+
+    [Header("出撃用プレハブ")]
+    public GameObject prefab;
 }

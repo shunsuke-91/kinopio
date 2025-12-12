@@ -51,7 +51,8 @@ public class BattleManager : MonoBehaviour
         currentStage.difficulty = StageLoader.selectedDifficulty;
         
         LoadStageSettings();
-        SpawnBases();
+        SpawnBases();          // 拠点の生成
+        SpawnPlayersFromTeam(); // ★追加：編成キャラの出撃
         StartCoroutine(SpawnEnemies()); // 敵出現開始
         // TODO: バトル開始演出（フェードインなど）が必要ならここに書く
     }
@@ -216,6 +217,86 @@ public class BattleManager : MonoBehaviour
         else
         {
             Debug.LogError("BattleManager: BaseHPUIController がシーン内に見つかりません");
+        }
+    }
+
+    // ==========================================
+    //  編成されたプレイヤーユニットの出撃（★追加）
+    // ==========================================
+    private void SpawnPlayersFromTeam()
+    {
+        if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length == 0)
+        {
+            Debug.Log("BattleManager: TeamSetupData に編成情報がありません。");
+            return;
+        }
+
+        for (int i = 0; i < TeamSetupData.SelectedTeam.Length; i++)
+        {
+            CharacterBlueprint bp = TeamSetupData.SelectedTeam[i];
+            if (bp == null || bp.prefab == null)
+            {
+                // そのスロットにキャラがセットされていない場合はスキップ
+                continue;
+            }
+
+            // ========== 出撃位置の決定 ==========
+            Vector2 spawnPos = Vector2.zero;
+
+            switch (currentStage.ruleType)
+            {
+                case StageRuleType.OneWay:
+                    {
+                        // 左側（playerX）にランダムなYで出撃
+                        float y = Random.Range(currentStage.minY, currentStage.maxY);
+                        spawnPos = new Vector2(currentStage.playerX, y);
+                    }
+                    break;
+
+                case StageRuleType.BothSides:
+                    {
+                        // 仮実装：playerSpawnPositions があればそこを使う
+                        if (currentStage.playerSpawnPositions != null &&
+                            currentStage.playerSpawnPositions.Length > 0)
+                        {
+                            int index = Mathf.Min(i, currentStage.playerSpawnPositions.Length - 1);
+                            spawnPos = currentStage.playerSpawnPositions[index];
+                        }
+                        else
+                        {
+                            spawnPos = new Vector2(currentStage.playerX, 0f);
+                        }
+                    }
+                    break;
+
+                case StageRuleType.FreeField:
+                    {
+                        // 仮実装：playerSpawnPositions からランダム
+                        if (currentStage.playerSpawnPositions != null &&
+                            currentStage.playerSpawnPositions.Length > 0)
+                        {
+                            int idx = Random.Range(0, currentStage.playerSpawnPositions.Length);
+                            spawnPos = currentStage.playerSpawnPositions[idx];
+                        }
+                        else
+                        {
+                            spawnPos = new Vector2(currentStage.playerX, 0f);
+                        }
+                    }
+                    break;
+            }
+
+            // ========== プレハブ生成 ==========
+            GameObject playerObj = Instantiate(bp.prefab, spawnPos, Quaternion.identity);
+
+            // PlayerController にルールを渡す
+            var pc = playerObj.GetComponent<PlayerController>();
+            if (pc != null)
+            {
+                pc.Initialize(currentStage.ruleType);
+            }
+
+            Debug.Log($"BattleManager: スロット {i + 1} から {bp.characterName} を出撃させました。");
         }
     }
 
