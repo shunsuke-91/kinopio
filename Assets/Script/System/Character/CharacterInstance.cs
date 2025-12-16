@@ -8,6 +8,7 @@ public class CharacterInstance
 
     [SerializeField] private string instanceID;          // 個体ID（同キャラ複数所持の識別用）
     [SerializeField] private CharacterBlueprint blueprint;
+    [SerializeField, Range(0, 3)] private int level;
 
     [Header("Upgrade (Instance)")]
     [SerializeField] private int level = 0;              // ★ Lv0開始（MAX=3）
@@ -22,7 +23,7 @@ public class CharacterInstance
     public int Level => level;
     public bool IsMaxLevel => level >= MaxLevel;
 
-    public CharacterInstance(CharacterBlueprint characterBlueprint)
+    public CharacterInstance(CharacterBlueprint characterBlueprint, int level = 0)
     {
         instanceID = Guid.NewGuid().ToString("N");
         blueprint = characterBlueprint;

@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
 
     private float currentHP;
     private Animator animator;
+    private CharacterInstance currentInstance;
 
     private StageRuleType ruleType;
     private Vector2 moveDirection = Vector2.right; // ★ OneWayでは右方向（左→右）
@@ -34,6 +35,26 @@ public class PlayerController : MonoBehaviour
     {
         ruleType = stageRule;
         SetupInitialDirection();
+    }
+
+    /// <summary>
+    /// インスタンスのステータスを適用する
+    /// </summary>
+    public void ApplyInstance(CharacterInstance instance)
+    {
+        if (instance == null) return;
+
+        currentInstance = instance;
+        maxHP = instance.GetMaxHP();
+        attackPower = instance.GetAttack();
+
+        float attackSpeed = instance.GetAttackSpeed();
+        if (animator != null)
+        {
+            animator.speed = attackSpeed;
+        }
+
+        currentHP = maxHP;
     }
 
     private void Update()
@@ -88,7 +109,7 @@ public class PlayerController : MonoBehaviour
     {
         if (target == null)
         {
-            animator.SetBool("Attack", false);
+            if (animator != null) animator.SetBool("Attack", false);
             return;
         }
 
@@ -97,12 +118,12 @@ public class PlayerController : MonoBehaviour
 
         if (enemy == null && baseCtrl == null)
         {
-            animator.SetBool("Attack", false);
+            if (animator != null) animator.SetBool("Attack", false);
             target = null;
             return;
         }
 
-        animator.SetBool("Attack", true);
+        if (animator != null) animator.SetBool("Attack", true);
     }
 
     public void OnAttackHit()
@@ -180,7 +201,7 @@ public class PlayerController : MonoBehaviour
     public void ClearTarget()
     {
         target = null;
-        animator.SetBool("Attack", false);
+        if (animator != null) animator.SetBool("Attack", false);
     }
 
     private void Die()
