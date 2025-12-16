@@ -168,7 +168,11 @@ public class BattleManager : MonoBehaviour
 
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
+        {
+            var instance = new CharacterInstance(bp);
+            pc.ApplyInstance(instance);
             pc.Initialize(currentStage.ruleType);
+        }
     }
 
     private Vector2 GetPlayerSpawnPos(int slotIndex)
