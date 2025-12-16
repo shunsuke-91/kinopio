@@ -3,6 +3,7 @@ using UnityEngine;
 public class PlayerSpawner : MonoBehaviour
 {
     private StageData stageData;
+    [SerializeField, Range(0, 3)] private int spawnLevel = 0;
 
     private void Awake()
     {
@@ -75,10 +76,12 @@ public class PlayerSpawner : MonoBehaviour
         // Player生成
         GameObject playerObj = Instantiate(prefab, pos, Quaternion.identity);
 
-        // ルールを渡す
+        // ルール・ステータスを渡す
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
         {
+            var instance = new CharacterInstance(bp, spawnLevel);
+            pc.ApplyInstance(instance);
             pc.Initialize(stageData.ruleType);
         }
 
