@@ -6,6 +6,7 @@ using TMPro;
 /// チーム編成画面の UI をまとめて管理するクラス
 /// ・スロットボタンをクリック → 選択中スロットを変更
 /// ・キャラボタンをクリック → 選択中スロットにキャラをセット
+/// ・TeamSetupData を正として、CharacterManager で保存/復元する
 /// </summary>
 public class TeamSetupUI : MonoBehaviour
 {
@@ -18,16 +19,39 @@ public class TeamSetupUI : MonoBehaviour
     [Header("現在選択中スロットの表示ラベル（例：\"スロット1選択中\"）")]
     [SerializeField] private TextMeshProUGUI selectedSlotLabel;
 
+    [Header("保存/復元に使う（未設定なら自動検索）")]
+    [SerializeField] private CharacterManager characterManager;
+
     // 現在どのスロットを選んでいるか（-1 = 未選択）
     private int currentSelectedSlotIndex = -1;
+
+    private void Awake()
+    {
+        if (characterManager == null)
+        {
+            characterManager = FindFirstObjectByType<CharacterManager>();
+        }
+    }
 
     private void Start()
     {
         // スロットボタンにクリック処理を登録
-        for (int i = 0; i < teamSlotButtons.Length; i++)
+        if (teamSlotButtons != null)
         {
-            int slotIndex = i; // クロージャ対策
-            teamSlotButtons[i].onClick.AddListener(() => OnClickTeamSlot(slotIndex));
+            for (int i = 0; i < teamSlotButtons.Length; i++)
+            {
+                int slotIndex = i; // クロージャ対策
+                if (teamSlotButtons[i] != null)
+                {
+                    teamSlotButtons[i].onClick.AddListener(() => OnClickTeamSlot(slotIndex));
+                }
+            }
+        }
+
+        // ★ 重要：保存済み → TeamSetupData に復元（事故防止）
+        if (characterManager != null)
+        {
+            characterManager.SyncTeamToRuntimeData();
         }
 
         // 初期表示
@@ -47,7 +71,7 @@ public class TeamSetupUI : MonoBehaviour
 
     /// <summary>
     /// キャラボタン側から呼んでもらうメソッド
-    /// 現在選択中のスロットに、このキャラをセットする
+    /// 現在選択中のスロットに、このキャラをセットする（A：空スロットOK）
     /// </summary>
     public void AssignCharacterToCurrentSlot(CharacterBlueprint blueprint)
     {
@@ -57,19 +81,40 @@ public class TeamSetupUI : MonoBehaviour
             return;
         }
 
-        // データ側に記録
+        // 1) データ側に記録（正）
         TeamSetupData.SelectedTeam[currentSelectedSlotIndex] = blueprint;
 
-        // 見た目を更新
+        // 2) 見た目を更新
         if (teamSlotImages != null &&
             currentSelectedSlotIndex < teamSlotImages.Length &&
             teamSlotImages[currentSelectedSlotIndex] != null)
         {
-            teamSlotImages[currentSelectedSlotIndex].sprite = blueprint.icon;
-            teamSlotImages[currentSelectedSlotIndex].enabled = (blueprint.icon != null);
+            var img = teamSlotImages[currentSelectedSlotIndex];
+
+            if (blueprint != null && blueprint.icon != null)
+            {
+                img.sprite = blueprint.icon;
+                img.enabled = true;
+            }
+            else
+            {
+                img.sprite = null;
+                img.enabled = false;
+            }
         }
 
-        Debug.Log($"スロット {currentSelectedSlotIndex + 1} に {blueprint.characterName} をセットしました。");
+        // 3) ★ 保存（TeamSetupData → PlayerPrefs）
+        if (characterManager == null)
+        {
+            characterManager = FindFirstObjectByType<CharacterManager>();
+        }
+        if (characterManager != null)
+        {
+            characterManager.SaveTeamFromRuntimeData();
+        }
+
+        string name = (blueprint != null) ? blueprint.characterName : "未設定";
+        Debug.Log($"スロット {currentSelectedSlotIndex + 1} に {name} をセットしました。");
     }
 
     /// <summary>
@@ -90,23 +135,25 @@ public class TeamSetupUI : MonoBehaviour
     }
 
     /// <summary>
-    /// 既に TeamSetupData に入っている情報からスロットアイコンを復元する
-    /// （将来的にシーンをまたぐ場合を想定）
+    /// TeamSetupData に入っている情報からスロットアイコンを復元する
     /// </summary>
-    private void RefreshSlotIconsFromData()
+    public void RefreshSlotIconsFromData()
     {
         if (teamSlotImages == null) return;
+        if (TeamSetupData.SelectedTeam == null) return;
 
-        for (int i = 0; i < teamSlotImages.Length && i < TeamSetupData.SelectedTeam.Length; i++)
+        int len = Mathf.Min(teamSlotImages.Length, TeamSetupData.SelectedTeam.Length);
+
+        for (int i = 0; i < len; i++)
         {
             var img = teamSlotImages[i];
             if (img == null) continue;
 
             var bp = TeamSetupData.SelectedTeam[i];
-            if (bp != null)
+            if (bp != null && bp.icon != null)
             {
                 img.sprite = bp.icon;
-                img.enabled = (bp.icon != null);
+                img.enabled = true;
             }
             else
             {

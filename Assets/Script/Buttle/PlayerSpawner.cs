@@ -15,29 +15,41 @@ public class PlayerSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// UIボタンから index 番目の Player を出撃させる
+    /// UIボタンから index 番目の編成キャラを出撃させる（slot 0〜4）
     /// </summary>
- public void SpawnPlayer(int index)
+    public void SpawnPlayer(int index)
     {
         if (stageData == null) return;
 
-        // 出撃可能ユニットが設定されていない
-        if (stageData.playerPrefabs == null || stageData.playerPrefabs.Length == 0)
+        var team = TeamSetupData.SelectedTeam;
+        if (team == null || team.Length == 0)
         {
-            Debug.LogError("StageData に playerPrefabs が設定されていません！");
+            Debug.LogWarning("PlayerSpawner: TeamSetupData.SelectedTeam が空です（編成シーンを経由していない可能性）");
             return;
         }
 
-        // index が範囲外
-        if (index < 0 || index >= stageData.playerPrefabs.Length)
+        if (index < 0 || index >= team.Length)
         {
-            Debug.LogError($"SpawnPlayer: index {index} が範囲外です");
+            Debug.LogError($"SpawnPlayer: index {index} が編成スロット範囲外です");
             return;
         }
 
-        GameObject prefab = stageData.playerPrefabs[index];
+        CharacterBlueprint bp = team[index];
+        if (bp == null)
+        {
+            Debug.LogWarning($"SpawnPlayer: スロット {index} にキャラがセットされていません");
+            return;
+        }
 
-        // 🔥 OneWay 用ランダム座標（A方式）
+        if (bp.prefab == null)
+        {
+            Debug.LogError($"SpawnPlayer: {bp.characterName} の prefab が設定されていません");
+            return;
+        }
+
+        GameObject prefab = bp.prefab;
+
+        // 出撃座標
         Vector2 pos;
 
         if (stageData.ruleType == StageRuleType.OneWay)
@@ -47,7 +59,6 @@ public class PlayerSpawner : MonoBehaviour
         }
         else
         {
-            // BothSides / FreeField は従来の spawnPositions を使用
             if (stageData.playerSpawnPositions != null &&
                 stageData.playerSpawnPositions.Length > 0)
             {
@@ -57,20 +68,20 @@ public class PlayerSpawner : MonoBehaviour
             }
             else
             {
-                pos = Vector2.zero; // fallback
+                pos = Vector2.zero;
             }
         }
 
         // Player生成
         GameObject playerObj = Instantiate(prefab, pos, Quaternion.identity);
 
-        // Playerにステージルールを渡す
+        // ルールを渡す
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
         {
             pc.Initialize(stageData.ruleType);
         }
 
-        Debug.Log($"Player {index} を {pos} に出現");
+        Debug.Log($"[PlayerSpawner] Slot {index} ({bp.characterName}) を {pos} に出現");
     }
 }

@@ -29,6 +29,10 @@ public class TeamSettingManager : MonoBehaviour
             return;
         }
 
+        // ===== ★ここが「最小1行追加」 =====
+        CharacterManager.Instance.SyncTeamToRuntimeData();
+        // ==================================
+
         SceneManager.LoadScene("BattleScene");
     }
 }
