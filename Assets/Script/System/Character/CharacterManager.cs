@@ -156,6 +156,14 @@ public class CharacterManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    /// <summary>
+    /// 現在の編成内容をセーブデータに反映し、次のシーンで参照できるようにする
+    /// </summary>
+    public void SyncTeamToRuntimeData()
+    {
+        SaveTeamData();
+    }
+
     private void EnsureTeamArray()
     {
         if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
