@@ -8,10 +8,9 @@ public class CharacterInstance
 
     [SerializeField] private string instanceID;          // 個体ID（同キャラ複数所持の識別用）
     [SerializeField] private CharacterBlueprint blueprint;
-    [SerializeField, Range(0, 3)] private int level;
 
     [Header("Upgrade (Instance)")]
-    [SerializeField] private int level = 0;              // ★ Lv0開始（MAX=3）
+    [SerializeField, Range(0, 3)] private int level = 0; // ★ Lv0開始（MAX=3）
 
     // 強化の伸び率（必要なら後で調整）
     [SerializeField] private float hpPerLevel = 0.10f;        // 1レベルごとに +10%
@@ -27,7 +26,7 @@ public class CharacterInstance
     {
         instanceID = Guid.NewGuid().ToString("N");
         blueprint = characterBlueprint;
-        level = 0; // ★ Lv0開始
+        this.level = Mathf.Clamp(level, 0, MaxLevel); // ★ Lv0開始
     }
 
     // ===== 最終ステータス（計算結果） =====
