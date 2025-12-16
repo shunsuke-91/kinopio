@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class CharacterManager : MonoBehaviour
@@ -8,10 +9,11 @@ public class CharacterManager : MonoBehaviour
     [Header("所持キャラ（例：最初は1体だけ）")]
     public List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
 
-    [Header("Blueprintカタログ（全種類を登録してください）")]
-    [SerializeField] private CharacterBlueprint[] blueprintCatalog;
+    [Header("全キャラの Blueprint データベース")]
+    [SerializeField] private CharacterBlueprintDatabase blueprintDatabase;
 
-    private const string TeamKeyPrefix = "TEAM_SLOT_"; // TEAM_SLOT_0 ～ TEAM_SLOT_4
+    private const string OwnedKey = "OWNED_CHARACTERS";
+    private const string TeamKey = "TEAM_CHARACTERS";
 
     private void Awake()
     {
@@ -20,83 +22,158 @@ public class CharacterManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        // 起動時に「保存済み → TeamSetupData」へ復元
-        SyncTeamToRuntimeData();
+        if (blueprintDatabase == null)
+        {
+            Debug.LogError("CharacterManager: blueprintDatabase が設定されていません。Inspector で設定してください。");
+        }
+
+        LoadOwnedCharacters();
+        LoadTeamData();
     }
 
-    // ----------------------------
-    // ★ ここが今回の要：保存 → TeamSetupData（復元）
-    // ----------------------------
-    public void SyncTeamToRuntimeData()
+    public void AddOwnedCharacter(CharacterBlueprint bp)
     {
-        // TeamSetupData が未初期化の事故対策（念のため）
+        if (bp == null) return;
+
+        ownedCharacters.Add(new CharacterInstance(bp));
+        SaveOwnedCharacters();
+    }
+
+    public void SetTeamSlot(int slotIndex, CharacterBlueprint blueprint)
+    {
+        if (slotIndex < 0 || slotIndex >= TeamSetupData.MaxSlots)
+        {
+            Debug.LogWarning($"CharacterManager: スロット {slotIndex} は範囲外です。");
+            return;
+        }
+
+        EnsureTeamArray();
+        TeamSetupData.SelectedTeam[slotIndex] = blueprint;
+        SaveTeamData();
+    }
+
+    public CharacterBlueprint[] GetTeamBlueprints()
+    {
+        EnsureTeamArray();
+        return TeamSetupData.SelectedTeam;
+    }
+
+    private void LoadOwnedCharacters()
+    {
+        ownedCharacters.Clear();
+
+        string saved = PlayerPrefs.GetString(OwnedKey, string.Empty);
+        if (string.IsNullOrEmpty(saved))
+        {
+            InitializeDefaultOwnedCharacter();
+            return;
+        }
+
+        string[] ids = saved.Split('|');
+        foreach (var id in ids)
+        {
+            if (string.IsNullOrEmpty(id)) continue;
+
+            var bp = GetBlueprintById(id);
+            if (bp != null)
+            {
+                ownedCharacters.Add(new CharacterInstance(bp));
+            }
+        }
+
+        if (ownedCharacters.Count == 0)
+        {
+            InitializeDefaultOwnedCharacter();
+        }
+    }
+
+    private void SaveOwnedCharacters()
+    {
+        var ids = ownedCharacters
+            .Where(c => c != null && c.Blueprint != null)
+            .Select(c => c.Blueprint.blueprintID);
+
+        string joined = string.Join("|", ids);
+        PlayerPrefs.SetString(OwnedKey, joined);
+        PlayerPrefs.Save();
+    }
+
+    private void InitializeDefaultOwnedCharacter()
+    {
+        if (blueprintDatabase != null && blueprintDatabase.blueprints != null && blueprintDatabase.blueprints.Length > 0)
+        {
+            var first = blueprintDatabase.blueprints[0];
+            if (first != null)
+            {
+                ownedCharacters.Add(new CharacterInstance(first));
+                SaveOwnedCharacters();
+            }
+        }
+    }
+
+    private void LoadTeamData()
+    {
+        EnsureTeamArray();
+
+        string saved = PlayerPrefs.GetString(TeamKey, string.Empty);
+        if (string.IsNullOrEmpty(saved))
+        {
+            SaveTeamData();
+            return;
+        }
+
+        string[] ids = saved.Split('|');
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
+        {
+            if (i < ids.Length && !string.IsNullOrEmpty(ids[i]))
+            {
+                TeamSetupData.SelectedTeam[i] = GetBlueprintById(ids[i]);
+            }
+            else
+            {
+                TeamSetupData.SelectedTeam[i] = null;
+            }
+        }
+    }
+
+    private void SaveTeamData()
+    {
+        EnsureTeamArray();
+
+        string[] ids = new string[TeamSetupData.MaxSlots];
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
+        {
+            CharacterBlueprint bp = TeamSetupData.SelectedTeam[i];
+            ids[i] = bp != null ? bp.blueprintID : string.Empty;
+        }
+
+        string joined = string.Join("|", ids);
+        PlayerPrefs.SetString(TeamKey, joined);
+        PlayerPrefs.Save();
+    }
+
+    private void EnsureTeamArray()
+    {
         if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
         {
             TeamSetupData.SelectedTeam = new CharacterBlueprint[TeamSetupData.MaxSlots];
         }
-
-        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
-        {
-            string key = TeamKeyPrefix + i;
-            string savedId = PlayerPrefs.GetString(key, "");
-
-            if (string.IsNullOrEmpty(savedId))
-            {
-                TeamSetupData.SelectedTeam[i] = null;
-                continue;
-            }
-
-            CharacterBlueprint bp = GetBlueprintById(savedId);
-            TeamSetupData.SelectedTeam[i] = bp; // 見つからなければ null になります
-        }
     }
 
-    // ----------------------------
-    // ★ ここが今回の要：TeamSetupData → 保存（更新）
-    // ----------------------------
-    public void SaveTeamFromRuntimeData()
-    {
-        if (TeamSetupData.SelectedTeam == null)
-        {
-            Debug.LogWarning("CharacterManager: TeamSetupData.SelectedTeam が null です。保存を中断します。");
-            return;
-        }
-
-        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
-        {
-            string key = TeamKeyPrefix + i;
-
-            CharacterBlueprint bp = TeamSetupData.SelectedTeam[i];
-            string id = (bp != null) ? bp.blueprintID : "";
-
-            PlayerPrefs.SetString(key, id);
-        }
-
-        PlayerPrefs.Save();
-    }
-
-    // ----------------------------
-    // BlueprintID → Blueprint を引く
-    // ----------------------------
     private CharacterBlueprint GetBlueprintById(string id)
     {
-        if (blueprintCatalog == null || blueprintCatalog.Length == 0)
+        if (string.IsNullOrEmpty(id)) return null;
+
+        if (blueprintDatabase == null)
         {
-            Debug.LogWarning("CharacterManager: blueprintCatalog が未設定です。Inspectorで登録してください。");
+            Debug.LogError("CharacterManager: blueprintDatabase が未設定です。");
             return null;
         }
 
-        for (int i = 0; i < blueprintCatalog.Length; i++)
-        {
-            var bp = blueprintCatalog[i];
-            if (bp == null) continue;
-            if (bp.blueprintID == id) return bp;
-        }
-
-        Debug.LogWarning($"CharacterManager: blueprintID '{id}' が blueprintCatalog から見つかりませんでした。");
-        return null;
+        return blueprintDatabase.GetByID(id);
     }
 }
