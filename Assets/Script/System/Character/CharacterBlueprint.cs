@@ -8,6 +8,11 @@ public class CharacterBlueprint : ScriptableObject
     public string characterName;
     public string blueprintID;
 
-    [Header("出撃用プレハブ")]
+    [Header("Battle")]
     public GameObject prefab;
+
+    [Header("Base Stats")]
+    public float baseHP = 100f;
+    public float baseAttack = 10f;
+    public float baseAttackSpeed = 1.0f; // 例：Animator.speed に掛ける用（1が標準）
 }

@@ -2452,7 +2452,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 492530357}
   m_Direction: 0
   m_Value: 1
-  m_Size: 0.99999994
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -2751,7 +2751,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterManager
   ownedCharacters: []
-  blueprintCatalog: []
+  blueprintDatabase: {fileID: 11400000, guid: 99d9de0675d1d410aac519f66667196f, type: 2}
 --- !u!1 &1889837095
 GameObject:
   m_ObjectHideFlags: 0
