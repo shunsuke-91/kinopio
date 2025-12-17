@@ -158,8 +158,7 @@ public class BattleManager : MonoBehaviour
         if (team == null || slotIndex < 0 || slotIndex >= team.Length)
             return;
 
-        CharacterInstance instance = team[slotIndex];
-        CharacterBlueprint bp = instance != null ? instance.Blueprint : null;
+        CharacterBlueprint bp = team[slotIndex];
         if (bp == null || bp.prefab == null)
             return;
 
@@ -170,6 +169,7 @@ public class BattleManager : MonoBehaviour
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
         {
+            var instance = new CharacterInstance(bp);
             pc.ApplyInstance(instance);
             pc.Initialize(currentStage.ruleType);
         }

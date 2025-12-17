@@ -19,21 +19,21 @@ public class BattleTeamSlotUI : MonoBehaviour
 
     public void Apply()
     {
-        var team = TeamSetupData.SelectedTeam;
+        var team = TeamSetupData.SelectedTeam; // CharacterBlueprint[] 前提
 
         for (int i = 0; i < 5; i++)
         {
-            CharacterInstance instance = null;
+            CharacterBlueprint bp = null;
 
             if (team != null && i < team.Length)
-                instance = team[i];
+                bp = team[i];
 
             // アイコン反映
             if (slotIcons != null && i < slotIcons.Length && slotIcons[i] != null)
             {
-                if (instance != null && instance.Blueprint != null && instance.Blueprint.icon != null)
+                if (bp != null && bp.icon != null)
                 {
-                    slotIcons[i].sprite = instance.Blueprint.icon;
+                    slotIcons[i].sprite = bp.icon;
                     slotIcons[i].color = Color.white; // 透明になってる事故対策
                 }
                 else
@@ -47,7 +47,7 @@ public class BattleTeamSlotUI : MonoBehaviour
             // 空スロットは押せない（仕様に合わせてON/OFF調整してください）
             if (slotButtons != null && i < slotButtons.Length && slotButtons[i] != null)
             {
-                slotButtons[i].interactable = (instance != null);
+                slotButtons[i].interactable = (bp != null);
             }
         }
     }
