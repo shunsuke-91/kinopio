@@ -158,8 +158,9 @@ public class BattleManager : MonoBehaviour
         if (team == null || slotIndex < 0 || slotIndex >= team.Length)
             return;
 
-        CharacterBlueprint bp = team[slotIndex];
-        if (bp == null || bp.prefab == null)
+        CharacterInstance instance = team[slotIndex];
+        CharacterBlueprint bp = instance != null ? instance.Blueprint : null;
+        if (instance == null || bp == null || bp.prefab == null)
             return;
 
         Vector2 spawnPos = GetPlayerSpawnPos(slotIndex);
@@ -169,7 +170,6 @@ public class BattleManager : MonoBehaviour
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
         {
-            var instance = new CharacterInstance(bp);
             pc.ApplyInstance(instance);
             pc.Initialize(currentStage.ruleType);
         }

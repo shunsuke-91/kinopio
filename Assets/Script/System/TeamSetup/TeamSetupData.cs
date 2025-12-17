@@ -9,6 +9,6 @@ public static class TeamSetupData
     // 例えば 5 スロット想定
     public const int MaxSlots = 5;
 
-    // 各スロットに選ばれたキャラクターの Blueprint を保持
+    // 各スロットに選ばれたキャラクターの Instance を保持
     public static CharacterInstance[] SelectedTeam = new CharacterInstance[MaxSlots];
 }
