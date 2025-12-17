@@ -10,5 +10,5 @@ public static class TeamSetupData
     public const int MaxSlots = 5;
 
     // 各スロットに選ばれたキャラクターの Blueprint を保持
-    public static CharacterBlueprint[] SelectedTeam = new CharacterBlueprint[MaxSlots];
+    public static CharacterInstance[] SelectedTeam = new CharacterInstance[MaxSlots];
 }

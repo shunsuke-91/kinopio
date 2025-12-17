@@ -16,3 +16,9 @@ MonoBehaviour:
   characterName: BP_DefaultCharacter
   blueprintID: DefaultCharacter
   prefab: {fileID: 2100118466339876958, guid: 0025cd22585dc47099610c2e84e695fe, type: 3}
+  baseHP: 5
+  baseAttack: 1
+  baseAttackSpeed: 1
+  hpPerLevel: 1
+  attackPerLevel: 1
+  attackSpeedPerLevel: 0.3
