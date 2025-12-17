@@ -56,7 +56,7 @@ public class CharacterManager : MonoBehaviour
 
         EnsureTeamArray();
         teamSlots[slotIndex] = instance;
-        TeamSetupData.SelectedTeam[slotIndex] = instance != null ? instance.Blueprint : null;
+        TeamSetupData.SelectedTeam[slotIndex] = instance;
         SaveTeamData();
     }
 
@@ -66,7 +66,7 @@ public class CharacterManager : MonoBehaviour
         return teamSlots;
     }
 
-    public CharacterBlueprint[] GetTeamBlueprints()
+    public CharacterInstance[] GetTeamBlueprints()
     {
         EnsureTeamArray();
         return TeamSetupData.SelectedTeam;
@@ -153,7 +153,7 @@ public class CharacterManager : MonoBehaviour
             }
 
             teamSlots[i] = instance;
-            TeamSetupData.SelectedTeam[i] = bp;
+            TeamSetupData.SelectedTeam[i] = instance;
         }
     }
 
@@ -167,7 +167,7 @@ public class CharacterManager : MonoBehaviour
             CharacterInstance instance = teamSlots[i];
             CharacterBlueprint bp = instance != null ? instance.Blueprint : null;
             ids[i] = bp != null ? bp.blueprintID : string.Empty;
-            TeamSetupData.SelectedTeam[i] = bp;
+            TeamSetupData.SelectedTeam[i] = instance;
         }
 
         string joined = string.Join("|", ids);
@@ -187,7 +187,7 @@ public class CharacterManager : MonoBehaviour
     {
         if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
         {
-            TeamSetupData.SelectedTeam = new CharacterBlueprint[TeamSetupData.MaxSlots];
+            TeamSetupData.SelectedTeam = new CharacterInstance[TeamSetupData.MaxSlots];
         }
 
         if (teamSlots == null || teamSlots.Length != TeamSetupData.MaxSlots)
