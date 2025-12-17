@@ -19,6 +19,9 @@ public class PlayerController : MonoBehaviour
     private Vector2 moveDirection = Vector2.right; // ★ OneWayでは右方向（左→右）
 
     private Transform target; // 攻撃対象（Enemy）
+    private bool isAttacking;
+    private bool pendingClearTarget;
+    private Vector3 lastTargetPosition;
 
     private void Awake()
     {
@@ -59,6 +62,12 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (isAttacking)
+        {
+            AttackBehavior();
+            return;
+        }
+
         if (target == null)
         {
             MoveBehavior();
@@ -109,46 +118,72 @@ public class PlayerController : MonoBehaviour
     {
         if (target == null)
         {
-            if (animator != null) animator.SetBool("Attack", false);
+            if (isAttacking)
+            {
+                pendingClearTarget = true;
+                if (animator != null) animator.SetBool("Attack", true);
+            }
+            else
+            {
+                if (animator != null) animator.SetBool("Attack", false);
+            }
             return;
         }
+
+        lastTargetPosition = target.position;
 
         var enemy = target.GetComponent<EnemyController>();
         var baseCtrl = target.GetComponent<BaseController>();
 
         if (enemy == null && baseCtrl == null)
         {
-            if (animator != null) animator.SetBool("Attack", false);
+            pendingClearTarget = true;
             target = null;
+            if (animator != null) animator.SetBool("Attack", true);
             return;
         }
 
+        isAttacking = true;
         if (animator != null) animator.SetBool("Attack", true);
     }
 
     public void OnAttackHit()
     {
-        if (target == null) return;
+        Vector3 spawnPosition = lastTargetPosition;
 
-        var enemy = target.GetComponent<EnemyController>();
-        var baseCtrl = target.GetComponent<BaseController>();
+        if (target != null)
+        {
+            spawnPosition = target.position;
+        }
+
+        var enemy = target != null ? target.GetComponent<EnemyController>() : null;
+        var baseCtrl = target != null ? target.GetComponent<BaseController>() : null;
+
+        if (hitEffect != null)
+            Instantiate(hitEffect, spawnPosition, Quaternion.identity);
 
         if (enemy != null)
         {
-            if (hitEffect != null)
-                Instantiate(hitEffect, target.position, Quaternion.identity);
-
             enemy.TakeDamage(attackPower);
             return;
         }
 
         if (baseCtrl != null)
         {
-            if (hitEffect != null)
-                Instantiate(hitEffect, target.position, Quaternion.identity);
-
             baseCtrl.TakeDamage(attackPower);
             return;
+        }
+    }
+
+    public void OnAttackEnd()
+    {
+        isAttacking = false;
+        if (animator != null) animator.SetBool("Attack", false);
+
+        if (pendingClearTarget)
+        {
+            target = null;
+            pendingClearTarget = false;
         }
     }
 
@@ -201,7 +236,16 @@ public class PlayerController : MonoBehaviour
     public void ClearTarget()
     {
         target = null;
-        if (animator != null) animator.SetBool("Attack", false);
+
+        if (isAttacking)
+        {
+            pendingClearTarget = true;
+            if (animator != null) animator.SetBool("Attack", true);
+        }
+        else
+        {
+            if (animator != null) animator.SetBool("Attack", false);
+        }
     }
 
     private void Die()
