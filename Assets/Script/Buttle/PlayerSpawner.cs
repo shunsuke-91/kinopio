@@ -3,7 +3,6 @@ using UnityEngine;
 public class PlayerSpawner : MonoBehaviour
 {
     private StageData stageData;
-    [SerializeField, Range(0, 3)] private int spawnLevel = 0;
 
     private void Awake()
     {
@@ -22,10 +21,14 @@ public class PlayerSpawner : MonoBehaviour
     {
         if (stageData == null) return;
 
-        var team = TeamSetupData.SelectedTeam;
+        CharacterManager manager = CharacterManager.Instance != null
+            ? CharacterManager.Instance
+            : FindFirstObjectByType<CharacterManager>();
+
+        CharacterInstance[] team = manager != null ? manager.GetTeamInstances() : null;
         if (team == null || team.Length == 0)
         {
-            Debug.LogWarning("PlayerSpawner: TeamSetupData.SelectedTeam が空です（編成シーンを経由していない可能性）");
+            Debug.LogWarning("PlayerSpawner: Team インスタンスが空です（編成シーンを経由していない可能性）");
             return;
         }
 
@@ -35,10 +38,17 @@ public class PlayerSpawner : MonoBehaviour
             return;
         }
 
-        CharacterBlueprint bp = team[index];
-        if (bp == null)
+        CharacterInstance instance = team[index];
+        if (instance == null)
         {
             Debug.LogWarning($"SpawnPlayer: スロット {index} にキャラがセットされていません");
+            return;
+        }
+
+        CharacterBlueprint bp = instance.Blueprint;
+        if (bp == null)
+        {
+            Debug.LogWarning($"SpawnPlayer: スロット {index} の Blueprint が null です");
             return;
         }
 
@@ -80,7 +90,6 @@ public class PlayerSpawner : MonoBehaviour
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc != null)
         {
-            var instance = new CharacterInstance(bp, spawnLevel);
             pc.ApplyInstance(instance);
             pc.Initialize(stageData.ruleType);
         }

@@ -9,6 +9,9 @@ public class CharacterManager : MonoBehaviour
     [Header("所持キャラ（例：最初は1体だけ）")]
     public List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
 
+    [Header("編成スロット（インスタンス参照）")]
+    [SerializeField] private CharacterInstance[] teamSlots = new CharacterInstance[TeamSetupData.MaxSlots];
+
     [Header("全キャラの Blueprint データベース")]
     [SerializeField] private CharacterBlueprintDatabase blueprintDatabase;
 
@@ -43,7 +46,7 @@ public class CharacterManager : MonoBehaviour
         SaveOwnedCharacters();
     }
 
-    public void SetTeamSlot(int slotIndex, CharacterBlueprint blueprint)
+    public void SetTeamSlot(int slotIndex, CharacterInstance instance)
     {
         if (slotIndex < 0 || slotIndex >= TeamSetupData.MaxSlots)
         {
@@ -52,8 +55,15 @@ public class CharacterManager : MonoBehaviour
         }
 
         EnsureTeamArray();
-        TeamSetupData.SelectedTeam[slotIndex] = blueprint;
+        teamSlots[slotIndex] = instance;
+        TeamSetupData.SelectedTeam[slotIndex] = instance != null ? instance.Blueprint : null;
         SaveTeamData();
+    }
+
+    public CharacterInstance[] GetTeamInstances()
+    {
+        EnsureTeamArray();
+        return teamSlots;
     }
 
     public CharacterBlueprint[] GetTeamBlueprints()
@@ -129,14 +139,21 @@ public class CharacterManager : MonoBehaviour
         string[] ids = saved.Split('|');
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
+            CharacterBlueprint bp = null;
             if (i < ids.Length && !string.IsNullOrEmpty(ids[i]))
             {
-                TeamSetupData.SelectedTeam[i] = GetBlueprintById(ids[i]);
+                bp = GetBlueprintById(ids[i]);
             }
-            else
+
+            CharacterInstance instance = FindOwnedInstanceByBlueprint(bp);
+            if (instance == null && bp != null)
             {
-                TeamSetupData.SelectedTeam[i] = null;
+                instance = new CharacterInstance(bp);
+                ownedCharacters.Add(instance);
             }
+
+            teamSlots[i] = instance;
+            TeamSetupData.SelectedTeam[i] = bp;
         }
     }
 
@@ -147,8 +164,10 @@ public class CharacterManager : MonoBehaviour
         string[] ids = new string[TeamSetupData.MaxSlots];
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
-            CharacterBlueprint bp = TeamSetupData.SelectedTeam[i];
+            CharacterInstance instance = teamSlots[i];
+            CharacterBlueprint bp = instance != null ? instance.Blueprint : null;
             ids[i] = bp != null ? bp.blueprintID : string.Empty;
+            TeamSetupData.SelectedTeam[i] = bp;
         }
 
         string joined = string.Join("|", ids);
@@ -170,6 +189,11 @@ public class CharacterManager : MonoBehaviour
         {
             TeamSetupData.SelectedTeam = new CharacterBlueprint[TeamSetupData.MaxSlots];
         }
+
+        if (teamSlots == null || teamSlots.Length != TeamSetupData.MaxSlots)
+        {
+            teamSlots = new CharacterInstance[TeamSetupData.MaxSlots];
+        }
     }
 
     private CharacterBlueprint GetBlueprintById(string id)
@@ -183,5 +207,11 @@ public class CharacterManager : MonoBehaviour
         }
 
         return blueprintDatabase.GetByID(id);
+    }
+
+    private CharacterInstance FindOwnedInstanceByBlueprint(CharacterBlueprint bp)
+    {
+        if (bp == null) return null;
+        return ownedCharacters.FirstOrDefault(c => c != null && c.Blueprint == bp);
     }
 }

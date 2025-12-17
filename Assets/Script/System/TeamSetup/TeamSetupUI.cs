@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Linq;
 
 /// <summary>
 /// チーム編成画面の UI をまとめて管理するクラス
@@ -51,7 +52,7 @@ public class TeamSetupUI : MonoBehaviour
         // ★ 重要：保存済み → TeamSetupData に復元（事故防止）
         if (characterManager != null)
         {
-            characterManager.GetTeamBlueprints();
+            characterManager.GetTeamInstances();
         }
 
         // 初期表示
@@ -86,9 +87,16 @@ public class TeamSetupUI : MonoBehaviour
             characterManager = FindFirstObjectByType<CharacterManager>();
         }
 
+        CharacterInstance foundInstance = null;
         if (characterManager != null)
         {
-            characterManager.SetTeamSlot(currentSelectedSlotIndex, blueprint);
+            foundInstance = characterManager.ownedCharacters.FirstOrDefault(o => o != null && o.Blueprint == blueprint);
+            if (foundInstance == null && blueprint != null)
+            {
+                foundInstance = new CharacterInstance(blueprint);
+                characterManager.ownedCharacters.Add(foundInstance);
+            }
+            characterManager.SetTeamSlot(currentSelectedSlotIndex, foundInstance);
         }
 
         // 2) 見た目を更新
@@ -111,7 +119,7 @@ public class TeamSetupUI : MonoBehaviour
         }
 
         string name = (blueprint != null) ? blueprint.characterName : "未設定";
-        Debug.Log($"スロット {currentSelectedSlotIndex + 1} に {name} をセットしました。");
+        Debug.Log($"スロット {currentSelectedSlotIndex + 1} に {name} をセットしました");
     }
 
     /// <summary>
@@ -138,11 +146,18 @@ public class TeamSetupUI : MonoBehaviour
     {
         if (teamSlotImages == null) return;
 
-        CharacterBlueprint[] team = characterManager != null
-            ? characterManager.GetTeamBlueprints()
-            : TeamSetupData.SelectedTeam;
+        CharacterInstance[] team = characterManager != null
+            ? characterManager.GetTeamInstances()
+            : null;
 
-        if (team == null) return;
+        if (team == null)
+        {
+            if (characterManager != null)
+            {
+                characterManager.GetTeamBlueprints();
+            }
+            return;
+        }
 
         int len = Mathf.Min(teamSlotImages.Length, team.Length);
 
@@ -151,7 +166,8 @@ public class TeamSetupUI : MonoBehaviour
             var img = teamSlotImages[i];
             if (img == null) continue;
 
-            var bp = team[i];
+            var inst = team[i];
+            var bp = inst != null ? inst.Blueprint : null;
             if (bp != null && bp.icon != null)
             {
                 img.sprite = bp.icon;
