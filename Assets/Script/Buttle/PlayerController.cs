@@ -20,6 +20,10 @@ public class PlayerController : MonoBehaviour
 
     private Transform target; // 攻撃対象（Enemy）
 
+    // ★追加：攻撃中フラグ / ターゲット解除予約（1周してから解除するため）
+    private bool isAttacking = false;
+    private bool pendingClearTarget = false;
+
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -59,14 +63,10 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-<<<<<<< HEAD
         AttackBehavior();
 
+        // 攻撃していない＆ターゲット無しなら移動
         if (!isAttacking && target == null)
-=======
-        if (target == null)
-        {
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
             MoveBehavior();
     }
 
@@ -108,33 +108,46 @@ public class PlayerController : MonoBehaviour
     // ============================
     private void AttackBehavior()
     {
+        // ターゲットがない
         if (target == null)
         {
-            if (animator != null) animator.SetBool("Attack", false);
+            // ★攻撃中なら、ここで止めない（1周後に止める）
+            if (!isAttacking)
+            {
+                if (animator != null) animator.SetBool("Attack", false);
+            }
             return;
         }
 
         var enemy = target.GetComponent<EnemyController>();
         var baseCtrl = target.GetComponent<BaseController>();
 
+        // ターゲットが無効になった（死亡等）
         if (enemy == null && baseCtrl == null)
         {
+            // ★攻撃中なら「解除予約」して、アニメ1周後に確実に止める
+            if (isAttacking)
+            {
+                pendingClearTarget = true;
+                return;
+            }
+
+            // ★攻撃していない状態なら即解除してOK
             if (animator != null) animator.SetBool("Attack", false);
             target = null;
             return;
         }
 
-<<<<<<< HEAD
+        // 攻撃開始
         if (!isAttacking)
         {
             isAttacking = true;
+            pendingClearTarget = false;
             if (animator != null) animator.SetBool("Attack", true);
         }
-=======
-        if (animator != null) animator.SetBool("Attack", true);
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     }
 
+    // AnimationEvent（攻撃の当たりフレーム）で呼ぶ
     public void OnAttackHit()
     {
         if (target == null) return;
@@ -159,17 +172,22 @@ public class PlayerController : MonoBehaviour
             baseCtrl.TakeDamage(attackPower);
             return;
         }
+
+        // ★ここに来た＝ヒット時点で既に対象が消えている → 解除予約
+        pendingClearTarget = true;
     }
 
-<<<<<<< HEAD
+    // AnimationEvent（攻撃アニメの終端）で呼ぶ
     public void OnAttackEnd()
     {
+        // 解除予約があるなら、ここで確定解除
         if (pendingClearTarget)
         {
             target = null;
             pendingClearTarget = false;
         }
 
+        // 次のターゲットがあるなら攻撃継続（次ループ）
         if (target != null)
         {
             isAttacking = true;
@@ -177,17 +195,17 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // ターゲット無しなら攻撃終了 → 移動へ
         isAttacking = false;
         if (animator != null) animator.SetBool("Attack", false);
     }
 
+    // Loop用に同じ処理（必要ならアニメイベントでこちらを呼んでもOK）
     public void OnAttackLoopEnd()
     {
         OnAttackEnd();
     }
 
-=======
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     // ============================
     // 衝突判定
     // ============================
@@ -199,6 +217,8 @@ public class PlayerController : MonoBehaviour
             if (baseCtrl != null)
             {
                 target = collision.transform;
+                // ★ターゲットが入ったので解除予約は取り消し
+                pendingClearTarget = false;
             }
             return;
         }
@@ -217,6 +237,7 @@ public class PlayerController : MonoBehaviour
             if (dot > 0 && distance < 1.2f)
             {
                 target = collision.transform;
+                pendingClearTarget = false;
             }
         }
     }
@@ -237,6 +258,8 @@ public class PlayerController : MonoBehaviour
     public void ClearTarget()
     {
         target = null;
+        pendingClearTarget = false;
+        isAttacking = false;
         if (animator != null) animator.SetBool("Attack", false);
     }
 
