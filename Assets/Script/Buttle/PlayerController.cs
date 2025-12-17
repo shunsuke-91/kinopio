@@ -62,20 +62,10 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (isAttacking)
-        {
-            AttackBehavior();
-            return;
-        }
+        AttackBehavior();
 
-        if (target == null)
-        {
+        if (!isAttacking && target == null)
             MoveBehavior();
-        }
-        else
-        {
-            AttackBehavior();
-        }
     }
 
     // ============================
@@ -143,8 +133,11 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        isAttacking = true;
-        if (animator != null) animator.SetBool("Attack", true);
+        if (!isAttacking)
+        {
+            isAttacking = true;
+            if (animator != null) animator.SetBool("Attack", true);
+        }
     }
 
     public void OnAttackHit()
@@ -177,14 +170,26 @@ public class PlayerController : MonoBehaviour
 
     public void OnAttackEnd()
     {
-        isAttacking = false;
-        if (animator != null) animator.SetBool("Attack", false);
-
         if (pendingClearTarget)
         {
             target = null;
             pendingClearTarget = false;
         }
+
+        if (target != null)
+        {
+            isAttacking = true;
+            if (animator != null) animator.SetBool("Attack", true);
+            return;
+        }
+
+        isAttacking = false;
+        if (animator != null) animator.SetBool("Attack", false);
+    }
+
+    public void OnAttackLoopEnd()
+    {
+        OnAttackEnd();
     }
 
     // ============================
