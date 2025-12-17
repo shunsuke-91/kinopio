@@ -45,10 +45,10 @@ public class PlayerController : MonoBehaviour
         if (instance == null) return;
 
         currentInstance = instance;
-        maxHP = instance.CurrentHP;
-        attackPower = instance.CurrentAttack;
+        maxHP = instance.GetMaxHP();
+        attackPower = instance.GetAttack();
 
-        float attackSpeed = instance.CurrentAttackSpeed;
+        float attackSpeed = instance.GetAttackSpeed();
         if (animator != null)
         {
             animator.speed = attackSpeed;

@@ -12,11 +12,6 @@ public class CharacterInstance
     [Header("Upgrade (Instance)")]
     [SerializeField, Range(0, 3)] private int level = 0; // ★ Lv0開始（MAX=3）
 
-    // 強化の伸び率（必要なら後で調整）
-    [SerializeField] private float hpPerLevel = 0.10f;        // 1レベルごとに +10%
-    [SerializeField] private float attackPerLevel = 0.10f;    // 1レベルごとに +10%
-    [SerializeField] private float speedPerLevel = 0.03f;     // 1レベルごとに +3%
-
     public string InstanceID => instanceID;
     public CharacterBlueprint Blueprint => blueprint;
     public int Level => level;
@@ -30,34 +25,28 @@ public class CharacterInstance
     }
 
     // ===== 最終ステータス（計算結果） =====
-    public float CurrentHP
+    public float GetMaxHP()
     {
-        get
-        {
-            if (blueprint == null) return 0f;
-            float rate = 1f + level * hpPerLevel; // ★ Lv0でも1.0
-            return blueprint.baseHP * rate;
-        }
+        if (blueprint == null) return 0f;
+        float baseValue = blueprint.baseHP;
+        float growth = blueprint.hpPerLevel;
+        return baseValue + growth * level;
     }
 
-    public float CurrentAttack
+    public float GetAttack()
     {
-        get
-        {
-            if (blueprint == null) return 0f;
-            float rate = 1f + level * attackPerLevel;
-            return blueprint.baseAttack * rate;
-        }
+        if (blueprint == null) return 0f;
+        float baseValue = blueprint.baseAttack;
+        float growth = blueprint.attackPerLevel;
+        return baseValue + growth * level;
     }
 
-    public float CurrentAttackSpeed
+    public float GetAttackSpeed()
     {
-        get
-        {
-            if (blueprint == null) return 1f;
-            float rate = 1f + level * speedPerLevel;
-            return blueprint.baseAttackSpeed * rate;
-        }
+        if (blueprint == null) return 1f;
+        float baseValue = blueprint.baseAttackSpeed;
+        float growth = blueprint.attackSpeedPerLevel;
+        return baseValue + growth * level;
     }
 
     /// <summary>
