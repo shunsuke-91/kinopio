@@ -19,9 +19,6 @@ public class PlayerController : MonoBehaviour
     private Vector2 moveDirection = Vector2.right; // ★ OneWayでは右方向（左→右）
 
     private Transform target; // 攻撃対象（Enemy）
-    private bool isAttacking;
-    private bool pendingClearTarget;
-    private Vector3 lastTargetPosition;
 
     private void Awake()
     {
@@ -62,9 +59,14 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+<<<<<<< HEAD
         AttackBehavior();
 
         if (!isAttacking && target == null)
+=======
+        if (target == null)
+        {
+>>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
             MoveBehavior();
     }
 
@@ -108,66 +110,58 @@ public class PlayerController : MonoBehaviour
     {
         if (target == null)
         {
-            if (isAttacking)
-            {
-                pendingClearTarget = true;
-                if (animator != null) animator.SetBool("Attack", true);
-            }
-            else
-            {
-                if (animator != null) animator.SetBool("Attack", false);
-            }
+            if (animator != null) animator.SetBool("Attack", false);
             return;
         }
-
-        lastTargetPosition = target.position;
 
         var enemy = target.GetComponent<EnemyController>();
         var baseCtrl = target.GetComponent<BaseController>();
 
         if (enemy == null && baseCtrl == null)
         {
-            pendingClearTarget = true;
+            if (animator != null) animator.SetBool("Attack", false);
             target = null;
-            if (animator != null) animator.SetBool("Attack", true);
             return;
         }
 
+<<<<<<< HEAD
         if (!isAttacking)
         {
             isAttacking = true;
             if (animator != null) animator.SetBool("Attack", true);
         }
+=======
+        if (animator != null) animator.SetBool("Attack", true);
+>>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     }
 
     public void OnAttackHit()
     {
-        Vector3 spawnPosition = lastTargetPosition;
+        if (target == null) return;
 
-        if (target != null)
-        {
-            spawnPosition = target.position;
-        }
-
-        var enemy = target != null ? target.GetComponent<EnemyController>() : null;
-        var baseCtrl = target != null ? target.GetComponent<BaseController>() : null;
-
-        if (hitEffect != null)
-            Instantiate(hitEffect, spawnPosition, Quaternion.identity);
+        var enemy = target.GetComponent<EnemyController>();
+        var baseCtrl = target.GetComponent<BaseController>();
 
         if (enemy != null)
         {
+            if (hitEffect != null)
+                Instantiate(hitEffect, target.position, Quaternion.identity);
+
             enemy.TakeDamage(attackPower);
             return;
         }
 
         if (baseCtrl != null)
         {
+            if (hitEffect != null)
+                Instantiate(hitEffect, target.position, Quaternion.identity);
+
             baseCtrl.TakeDamage(attackPower);
             return;
         }
     }
 
+<<<<<<< HEAD
     public void OnAttackEnd()
     {
         if (pendingClearTarget)
@@ -192,6 +186,8 @@ public class PlayerController : MonoBehaviour
         OnAttackEnd();
     }
 
+=======
+>>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     // ============================
     // 衝突判定
     // ============================
@@ -241,16 +237,7 @@ public class PlayerController : MonoBehaviour
     public void ClearTarget()
     {
         target = null;
-
-        if (isAttacking)
-        {
-            pendingClearTarget = true;
-            if (animator != null) animator.SetBool("Attack", true);
-        }
-        else
-        {
-            if (animator != null) animator.SetBool("Attack", false);
-        }
+        if (animator != null) animator.SetBool("Attack", false);
     }
 
     private void Die()
