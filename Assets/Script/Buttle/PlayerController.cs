@@ -59,16 +59,10 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-<<<<<<< HEAD
-        AttackBehavior();
-
-        if (!isAttacking && target == null)
-=======
         if (target == null)
         {
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
             MoveBehavior();
-    }
+    }}
 
     // ============================
     // 移動処理
@@ -124,15 +118,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-<<<<<<< HEAD
-        if (!isAttacking)
-        {
-            isAttacking = true;
-            if (animator != null) animator.SetBool("Attack", true);
-        }
-=======
         if (animator != null) animator.SetBool("Attack", true);
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     }
 
     public void OnAttackHit()
@@ -161,33 +147,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-<<<<<<< HEAD
-    public void OnAttackEnd()
-    {
-        if (pendingClearTarget)
-        {
-            target = null;
-            pendingClearTarget = false;
-        }
-
-        if (target != null)
-        {
-            isAttacking = true;
-            if (animator != null) animator.SetBool("Attack", true);
-            return;
-        }
-
-        isAttacking = false;
-        if (animator != null) animator.SetBool("Attack", false);
-    }
-
-    public void OnAttackLoopEnd()
-    {
-        OnAttackEnd();
-    }
-
-=======
->>>>>>> parent of 8b371e9 (Keep attack animation running until animation end)
     // ============================
     // 衝突判定
     // ============================
