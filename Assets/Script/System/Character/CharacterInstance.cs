@@ -6,56 +6,66 @@ public class CharacterInstance
 {
     public const int MaxLevel = 3;
 
-    [SerializeField] private string instanceID;          // 個体ID（同キャラ複数所持の識別用）
-    [SerializeField] private CharacterBlueprint blueprint;
+    [SerializeField] private string instanceId;
+    [SerializeField] private string blueprintId;
+    [SerializeField, Range(0, MaxLevel)] private int level = 0;
 
-    [Header("Upgrade (Instance)")]
-    [SerializeField, Range(0, 3)] private int level = 0; // ★ Lv0開始（MAX=3）
+    [NonSerialized] private CharacterBlueprintDatabase blueprintDatabase;
 
-    public string InstanceID => instanceID;
-    public CharacterBlueprint Blueprint => blueprint;
-    public int Level => level;
-    public bool IsMaxLevel => level >= MaxLevel;
+    public string InstanceId => instanceId;
+    public string BlueprintId => blueprintId;
+    public int Level => Mathf.Clamp(level, 0, MaxLevel);
+    public bool IsMaxLevel => Level >= MaxLevel;
+    public CharacterBlueprint Blueprint => GetBlueprint();
 
-    public CharacterInstance(CharacterBlueprint characterBlueprint, int level = 0)
+    public CharacterInstance()
     {
-        instanceID = Guid.NewGuid().ToString("N");
-        blueprint = characterBlueprint;
-        this.level = Mathf.Clamp(level, 0, MaxLevel); // ★ Lv0開始
     }
 
-    // ===== 最終ステータス（計算結果） =====
+    public CharacterInstance(string blueprintId, int level = 0, CharacterBlueprintDatabase blueprintDatabase = null)
+    {
+        instanceId = Guid.NewGuid().ToString("N");
+        this.blueprintId = blueprintId;
+        this.level = Mathf.Clamp(level, 0, MaxLevel);
+        AssignBlueprintDatabase(blueprintDatabase);
+    }
+
+    public void AssignBlueprintDatabase(CharacterBlueprintDatabase database)
+    {
+        blueprintDatabase = database;
+    }
+
     public float GetMaxHP()
     {
-        if (blueprint == null) return 0f;
-        float baseValue = blueprint.baseHP;
-        float growth = blueprint.hpPerLevel;
-        return baseValue + growth * level;
+        var bp = GetBlueprint();
+        if (bp == null) return 0f;
+        return bp.baseHP + bp.hpPerLevel * Level;
     }
 
     public float GetAttack()
     {
-        if (blueprint == null) return 0f;
-        float baseValue = blueprint.baseAttack;
-        float growth = blueprint.attackPerLevel;
-        return baseValue + growth * level;
+        var bp = GetBlueprint();
+        if (bp == null) return 0f;
+        return bp.baseAttack + bp.attackPerLevel * Level;
     }
 
     public float GetAttackSpeed()
     {
-        if (blueprint == null) return 1f;
-        float baseValue = blueprint.baseAttackSpeed;
-        float growth = blueprint.attackSpeedPerLevel;
-        return baseValue + growth * level;
+        var bp = GetBlueprint();
+        if (bp == null) return 1f;
+        return bp.baseAttackSpeed + bp.attackSpeedPerLevel * Level;
     }
 
-    /// <summary>
-    /// レベルを1上げます（MAX=3）。成功したら true を返します。
-    /// </summary>
-    public bool LevelUp()
+    public bool TryLevelUp()
     {
         if (level >= MaxLevel) return false;
-        level++;
+        level = Mathf.Clamp(level + 1, 0, MaxLevel);
         return true;
+    }
+
+    public CharacterBlueprint GetBlueprint()
+    {
+        if (blueprintDatabase == null || string.IsNullOrEmpty(blueprintId)) return null;
+        return blueprintDatabase.GetByID(blueprintId);
     }
 }

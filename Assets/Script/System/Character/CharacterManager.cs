@@ -1,22 +1,28 @@
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using UnityEngine;
 
 public class CharacterManager : MonoBehaviour
 {
     public static CharacterManager Instance { get; private set; }
 
-    [Header("所持キャラ（例：最初は1体だけ）")]
-    public List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
+    [Header("保存ファイル名")]
+    [SerializeField] private string saveFileName = "character_save.json";
 
-    [Header("編成スロット（インスタンス参照）")]
-    [SerializeField] private CharacterInstance[] teamSlots = new CharacterInstance[TeamSetupData.MaxSlots];
-
-    [Header("全キャラの Blueprint データベース")]
+    [Header("データベース")]
     [SerializeField] private CharacterBlueprintDatabase blueprintDatabase;
+    [SerializeField] private BlueprintUnlockDatabase blueprintUnlockDatabase;
+    [SerializeField] private CraftCostDatabase craftCostDatabase;
+    [SerializeField] private UpgradeCostDatabase upgradeCostDatabase;
 
-    private const string OwnedKey = "OWNED_CHARACTERS";
-    private const string TeamKey = "TEAM_CHARACTERS";
+    private readonly List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
+    private CharacterInstance[] teamSlots = new CharacterInstance[TeamSetupData.MaxSlots];
+    private readonly MaterialInventory materialInventory = new MaterialInventory();
+
+    public IReadOnlyList<CharacterInstance> OwnedCharacters => ownedCharacters;
+    public MaterialInventory Materials => materialInventory;
+
+    private string SavePath => Path.Combine(Application.persistentDataPath, saveFileName);
 
     private void Awake()
     {
@@ -29,35 +35,61 @@ public class CharacterManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        if (blueprintDatabase == null)
-        {
-            Debug.LogError("CharacterManager: blueprintDatabase が設定されていません。Inspector で設定してください。");
-        }
-
-        LoadOwnedCharacters();
-        LoadTeamData();
+        LoadSaveData();
     }
 
-    public void AddOwnedCharacter(CharacterBlueprint bp)
+    public bool IsBlueprintUnlocked(string blueprintId)
     {
-        if (bp == null) return;
+        if (blueprintUnlockDatabase == null) return false;
+        return blueprintUnlockDatabase.IsUnlocked(blueprintId);
+    }
 
-        ownedCharacters.Add(new CharacterInstance(bp));
-        SaveOwnedCharacters();
+    public bool TryCraft(string blueprintId)
+    {
+        if (string.IsNullOrEmpty(blueprintId)) return false;
+        if (!IsBlueprintUnlocked(blueprintId)) return false;
+
+        var blueprint = blueprintDatabase != null ? blueprintDatabase.GetByID(blueprintId) : null;
+        if (blueprint == null) return false;
+
+        var costs = craftCostDatabase != null ? craftCostDatabase.GetCosts(blueprintId) : null;
+        if (!HasEnoughMaterials(costs)) return false;
+
+        ConsumeMaterials(costs);
+        var instance = new CharacterInstance(blueprintId, 0, blueprintDatabase);
+        ownedCharacters.Add(instance);
+        SaveGame();
+        return true;
+    }
+
+    public bool TryUpgrade(string instanceId)
+    {
+        if (string.IsNullOrEmpty(instanceId)) return false;
+        var instance = ownedCharacters.Find(c => c != null && c.InstanceId == instanceId);
+        if (instance == null || instance.IsMaxLevel) return false;
+
+        int nextLevel = instance.Level + 1;
+        var costs = upgradeCostDatabase != null ? upgradeCostDatabase.GetCosts(instance.BlueprintId, nextLevel) : null;
+        if (!HasEnoughMaterials(costs)) return false;
+
+        ConsumeMaterials(costs);
+        if (instance.TryLevelUp())
+        {
+            SaveGame();
+            return true;
+        }
+
+        return false;
     }
 
     public void SetTeamSlot(int slotIndex, CharacterInstance instance)
     {
-        if (slotIndex < 0 || slotIndex >= TeamSetupData.MaxSlots)
-        {
-            Debug.LogWarning($"CharacterManager: スロット {slotIndex} は範囲外です。");
-            return;
-        }
-
+        if (slotIndex < 0 || slotIndex >= TeamSetupData.MaxSlots) return;
         EnsureTeamArray();
+
         teamSlots[slotIndex] = instance;
         TeamSetupData.SelectedTeam[slotIndex] = instance;
-        SaveTeamData();
+        SaveGame();
     }
 
     public CharacterInstance[] GetTeamInstances()
@@ -66,121 +98,128 @@ public class CharacterManager : MonoBehaviour
         return teamSlots;
     }
 
-    public CharacterInstance[] GetTeamBlueprints()
+    public void SyncTeamToRuntimeData()
     {
-        EnsureTeamArray();
-        return TeamSetupData.SelectedTeam;
+        SaveGame();
     }
 
-    private void LoadOwnedCharacters()
+    private bool HasEnoughMaterials(MaterialCost[] costs)
     {
+        if (costs == null || costs.Length == 0) return false;
+        foreach (var cost in costs)
+        {
+            if (cost == null || string.IsNullOrEmpty(cost.materialId) || cost.amount <= 0) return false;
+            if (materialInventory.GetCount(cost.materialId) < cost.amount) return false;
+        }
+        return true;
+    }
+
+    private void ConsumeMaterials(MaterialCost[] costs)
+    {
+        if (costs == null) return;
+        foreach (var cost in costs)
+        {
+            if (cost == null || string.IsNullOrEmpty(cost.materialId) || cost.amount <= 0) continue;
+            materialInventory.TryConsume(cost.materialId, cost.amount);
+        }
+    }
+
+    private void LoadSaveData()
+    {
+        EnsureTeamArray();
+        CharacterSaveData data = ReadSaveFromFile();
+
         ownedCharacters.Clear();
-
-        string saved = PlayerPrefs.GetString(OwnedKey, string.Empty);
-        if (string.IsNullOrEmpty(saved))
+        if (data != null && data.ownedCharacters != null)
         {
-            InitializeDefaultOwnedCharacter();
-            return;
-        }
-
-        string[] ids = saved.Split('|');
-        foreach (var id in ids)
-        {
-            if (string.IsNullOrEmpty(id)) continue;
-
-            var bp = GetBlueprintById(id);
-            if (bp != null)
+            foreach (var instance in data.ownedCharacters)
             {
-                ownedCharacters.Add(new CharacterInstance(bp));
-            }
-        }
-
-        if (ownedCharacters.Count == 0)
-        {
-            InitializeDefaultOwnedCharacter();
-        }
-    }
-
-    private void SaveOwnedCharacters()
-    {
-        var ids = ownedCharacters
-            .Where(c => c != null && c.Blueprint != null)
-            .Select(c => c.Blueprint.blueprintID);
-
-        string joined = string.Join("|", ids);
-        PlayerPrefs.SetString(OwnedKey, joined);
-        PlayerPrefs.Save();
-    }
-
-    private void InitializeDefaultOwnedCharacter()
-    {
-        if (blueprintDatabase != null && blueprintDatabase.blueprints != null && blueprintDatabase.blueprints.Length > 0)
-        {
-            var first = blueprintDatabase.blueprints[0];
-            if (first != null)
-            {
-                ownedCharacters.Add(new CharacterInstance(first));
-                SaveOwnedCharacters();
-            }
-        }
-    }
-
-    private void LoadTeamData()
-    {
-        EnsureTeamArray();
-
-        string saved = PlayerPrefs.GetString(TeamKey, string.Empty);
-        if (string.IsNullOrEmpty(saved))
-        {
-            SaveTeamData();
-            return;
-        }
-
-        string[] ids = saved.Split('|');
-        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
-        {
-            CharacterBlueprint bp = null;
-            if (i < ids.Length && !string.IsNullOrEmpty(ids[i]))
-            {
-                bp = GetBlueprintById(ids[i]);
-            }
-
-            CharacterInstance instance = FindOwnedInstanceByBlueprint(bp);
-            if (instance == null && bp != null)
-            {
-                instance = new CharacterInstance(bp);
+                if (instance == null || string.IsNullOrEmpty(instance.BlueprintId)) continue;
+                instance.AssignBlueprintDatabase(blueprintDatabase);
                 ownedCharacters.Add(instance);
             }
+        }
 
+        materialInventory.LoadFromList(data != null ? data.materials : null);
+
+        ApplyTeamData(data);
+
+        if (data == null)
+        {
+            SaveGame();
+        }
+    }
+
+    private CharacterSaveData ReadSaveFromFile()
+    {
+        var path = SavePath;
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<CharacterSaveData>(json);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    private void SaveGame()
+    {
+        var data = new CharacterSaveData
+        {
+            materials = materialInventory.ToSerializableList(),
+            ownedCharacters = new List<CharacterInstance>(ownedCharacters),
+            teamInstanceIds = BuildTeamInstanceIdList(),
+            version = 1
+        };
+
+        var path = SavePath;
+        try
+        {
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            string json = JsonUtility.ToJson(data, true);
+            File.WriteAllText(path, json);
+        }
+        catch (IOException)
+        {
+            // 何もしない（例外を投げない）
+        }
+    }
+
+    private void ApplyTeamData(CharacterSaveData data)
+    {
+        EnsureTeamArray();
+        if (data == null || data.teamInstanceIds == null)
+        {
+            ClearTeamSlots();
+            return;
+        }
+
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
+        {
+            string id = i < data.teamInstanceIds.Count ? data.teamInstanceIds[i] : string.Empty;
+            var instance = ownedCharacters.Find(c => c != null && c.InstanceId == id);
             teamSlots[i] = instance;
             TeamSetupData.SelectedTeam[i] = instance;
         }
     }
 
-    private void SaveTeamData()
+    private void ClearTeamSlots()
     {
-        EnsureTeamArray();
-
-        string[] ids = new string[TeamSetupData.MaxSlots];
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
-            CharacterInstance instance = teamSlots[i];
-            CharacterBlueprint bp = instance != null ? instance.Blueprint : null;
-            ids[i] = bp != null ? bp.blueprintID : string.Empty;
-            TeamSetupData.SelectedTeam[i] = instance;
+            teamSlots[i] = null;
+            TeamSetupData.SelectedTeam[i] = null;
         }
-
-        string joined = string.Join("|", ids);
-        PlayerPrefs.SetString(TeamKey, joined);
-        PlayerPrefs.Save();
-    }
-
-    /// <summary>
-    /// 現在の編成内容をセーブデータに反映し、次のシーンで参照できるようにする
-    /// </summary>
-    public void SyncTeamToRuntimeData()
-    {
-        SaveTeamData();
     }
 
     private void EnsureTeamArray()
@@ -196,22 +235,14 @@ public class CharacterManager : MonoBehaviour
         }
     }
 
-    private CharacterBlueprint GetBlueprintById(string id)
+    private List<string> BuildTeamInstanceIdList()
     {
-        if (string.IsNullOrEmpty(id)) return null;
-
-        if (blueprintDatabase == null)
+        var result = new List<string>(TeamSetupData.MaxSlots);
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
-            Debug.LogError("CharacterManager: blueprintDatabase が未設定です。");
-            return null;
+            var instance = teamSlots != null && i < teamSlots.Length ? teamSlots[i] : null;
+            result.Add(instance != null ? instance.InstanceId : string.Empty);
         }
-
-        return blueprintDatabase.GetByID(id);
-    }
-
-    private CharacterInstance FindOwnedInstanceByBlueprint(CharacterBlueprint bp)
-    {
-        if (bp == null) return null;
-        return ownedCharacters.FirstOrDefault(c => c != null && c.Blueprint == bp);
+        return result;
     }
 }

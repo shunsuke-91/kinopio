@@ -31,7 +31,7 @@ public class CharacterScrollView : MonoBehaviour
         for (int i = contentParent.childCount - 1; i >= 0; i--)
             Destroy(contentParent.GetChild(i).gameObject);
 
-        foreach (var ins in characterManager.ownedCharacters)
+        foreach (var ins in characterManager.OwnedCharacters)
         {
             if (ins == null || ins.Blueprint == null) continue;
 
