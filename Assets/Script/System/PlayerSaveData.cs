@@ -6,7 +6,7 @@ public class PlayerSaveData
 {
     public ProgressData progress = new ProgressData();
     public MaterialInventoryData materials = new MaterialInventoryData();
-    public List<CharacterInstanceData> ownedCharacters = new List<CharacterInstanceData>();
+    public List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
     public string[] selectedTeamInstanceIds = Array.Empty<string>();
 
     public static PlayerSaveData CreateNew()
@@ -15,7 +15,7 @@ public class PlayerSaveData
         {
             progress = new ProgressData(),
             materials = new MaterialInventoryData(),
-            ownedCharacters = new List<CharacterInstanceData>(),
+            ownedCharacters = new List<CharacterInstance>(),
             selectedTeamInstanceIds = Array.Empty<string>()
         };
     }

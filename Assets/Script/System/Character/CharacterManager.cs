@@ -1,5 +1,8 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 
 public class CharacterManager : MonoBehaviour
@@ -7,12 +10,11 @@ public class CharacterManager : MonoBehaviour
     public static CharacterManager Instance { get; private set; }
 
     [Header("保存ファイル名")]
-    [SerializeField] private string saveFileName = "character_save.json";
+    [SerializeField] private string saveFileName = "player_save.json";
 
     [Header("データベース")]
     [SerializeField] private CharacterBlueprintDatabase blueprintDatabase;
     [SerializeField] private BlueprintUnlockDatabase blueprintUnlockDatabase;
-    [SerializeField] private CraftCostDatabase craftCostDatabase;
     [SerializeField] private UpgradeCostDatabase upgradeCostDatabase;
 
     private readonly List<CharacterInstance> ownedCharacters = new List<CharacterInstance>();
@@ -38,19 +40,26 @@ public class CharacterManager : MonoBehaviour
         LoadSaveData();
     }
 
+    // =========================================================
+    // 解放判定
+    // =========================================================
     public bool IsBlueprintUnlocked(string blueprintId)
     {
         if (blueprintUnlockDatabase == null) return false;
+
         var gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
         if (gameState == null)
         {
-            Debug.LogWarning("GameState not found; cannot evaluate blueprint unlocks.");
+            Debug.LogWarning("GameState が見つからないため、解放判定ができません。");
             return false;
         }
 
         return gameState.IsUnlocked(blueprintId, blueprintUnlockDatabase);
     }
 
+    // =========================================================
+    // 設計（クラフト）
+    // =========================================================
     public bool TryCraft(string blueprintId)
     {
         if (string.IsNullOrEmpty(blueprintId)) return false;
@@ -59,27 +68,43 @@ public class CharacterManager : MonoBehaviour
         var blueprint = blueprintDatabase != null ? blueprintDatabase.GetByID(blueprintId) : null;
         if (blueprint == null) return false;
 
-        var costs = craftCostDatabase != null ? craftCostDatabase.GetCosts(blueprintId) : null;
+        // BlueprintUnlockDatabase に統合済み：クラフトコストは List<MaterialStack>
+        var costs = blueprintUnlockDatabase != null
+            ? blueprintUnlockDatabase.GetCraftCosts(blueprintId)
+            : new List<MaterialStack>();
+
         if (!HasEnoughMaterials(costs)) return false;
 
         ConsumeMaterials(costs);
+
         var instance = new CharacterInstance(blueprintId, 0, blueprintDatabase);
         ownedCharacters.Add(instance);
+
         SaveGame();
         return true;
     }
 
+    // =========================================================
+    // 強化
+    // =========================================================
     public bool TryUpgrade(string instanceId)
     {
         if (string.IsNullOrEmpty(instanceId)) return false;
+
         var instance = ownedCharacters.Find(c => c != null && c.InstanceId == instanceId);
         if (instance == null || instance.IsMaxLevel) return false;
 
         int nextLevel = instance.Level + 1;
-        var costs = upgradeCostDatabase != null ? upgradeCostDatabase.GetCosts(instance.BlueprintId, nextLevel) : null;
+
+        // UpgradeCostDatabase は List<MaterialStack> を返す前提
+        var costs = upgradeCostDatabase != null
+            ? upgradeCostDatabase.GetCosts(instance.BlueprintId, nextLevel)
+            : new List<MaterialStack>();
+
         if (!HasEnoughMaterials(costs)) return false;
 
         ConsumeMaterials(costs);
+
         if (instance.TryLevelUp())
         {
             SaveGame();
@@ -89,13 +114,22 @@ public class CharacterManager : MonoBehaviour
         return false;
     }
 
+    // =========================================================
+    // 編成
+    // =========================================================
     public void SetTeamSlot(int slotIndex, CharacterInstance instance)
     {
         if (slotIndex < 0 || slotIndex >= TeamSetupData.MaxSlots) return;
         EnsureTeamArray();
 
         teamSlots[slotIndex] = instance;
-        TeamSetupData.SelectedTeam[slotIndex] = instance;
+
+        // TeamSetupData 側も同期（あなたの現状は CharacterInstance[] 前提）
+        if (TeamSetupData.SelectedTeam != null && slotIndex < TeamSetupData.SelectedTeam.Length)
+        {
+            TeamSetupData.SelectedTeam[slotIndex] = instance;
+        }
+
         SaveGame();
     }
 
@@ -110,80 +144,100 @@ public class CharacterManager : MonoBehaviour
         SaveGame();
     }
 
-    private bool HasEnoughMaterials(MaterialCost[] costs)
+    // =========================================================
+    // 素材チェック / 消費（List<MaterialStack>）
+    // =========================================================
+    private bool HasEnoughMaterials(List<MaterialStack> costs)
     {
-        if (costs == null || costs.Length == 0) return false;
+        if (costs == null || costs.Count == 0) return false;
+
         foreach (var cost in costs)
         {
-            if (cost == null || string.IsNullOrEmpty(cost.materialId) || cost.amount <= 0) return false;
-            if (materialInventory.GetCount(cost.materialId) < cost.amount) return false;
+            if (cost == null) return false;
+            if (string.IsNullOrEmpty(cost.materialId)) return false;
+            if (cost.count <= 0) return false;
+
+            if (materialInventory.GetCount(cost.materialId) < cost.count)
+                return false;
         }
+
         return true;
     }
 
-    private void ConsumeMaterials(MaterialCost[] costs)
+    private void ConsumeMaterials(List<MaterialStack> costs)
     {
         if (costs == null) return;
+
         foreach (var cost in costs)
         {
-            if (cost == null || string.IsNullOrEmpty(cost.materialId) || cost.amount <= 0) continue;
-            materialInventory.TryConsume(cost.materialId, cost.amount);
+            if (cost == null) continue;
+            if (string.IsNullOrEmpty(cost.materialId) || cost.count <= 0) continue;
+
+            materialInventory.TryConsume(cost.materialId, cost.count);
         }
     }
 
+    // =========================================================
+    // セーブ / ロード（PlayerSaveData に統一）
+    // =========================================================
     private void LoadSaveData()
     {
         EnsureTeamArray();
-        CharacterSaveData data = ReadSaveFromFile();
 
+        var data = ReadSaveFromFile<PlayerSaveData>();
         ownedCharacters.Clear();
-        if (data != null && data.ownedCharacters != null)
+
+        // ownedCharacters 復元
+        var savedOwned = GetFieldOrPropertyValue(data, "ownedCharacters") as IList;
+        if (savedOwned != null)
         {
-            foreach (var instance in data.ownedCharacters)
+            foreach (var obj in savedOwned)
             {
-                if (instance == null || string.IsNullOrEmpty(instance.BlueprintId)) continue;
-                instance.AssignBlueprintDatabase(blueprintDatabase);
-                ownedCharacters.Add(instance);
+                var inst = obj as CharacterInstance;
+                if (inst == null) continue;
+                if (string.IsNullOrEmpty(inst.BlueprintId)) continue;
+
+                inst.AssignBlueprintDatabase(blueprintDatabase);
+                ownedCharacters.Add(inst);
             }
         }
 
-        materialInventory.LoadFromList(data != null ? data.materials : null);
+        // materials 復元（PlayerSaveData.materials の型が揺れても拾う）
+        var savedMaterials = ExtractMaterialStacksFromPlayerSave(data);
+        materialInventory.LoadFromList(savedMaterials);
 
-        ApplyTeamData(data);
+        // team 復元（selectedTeamInstanceIds / teamInstanceIds 両対応）
+        var teamIds = ExtractTeamIdsFromPlayerSave(data);
+        ApplyTeamIds(teamIds);
 
+        // 初回セーブ（ファイルが無い場合）
         if (data == null)
         {
             SaveGame();
         }
     }
 
-    private CharacterSaveData ReadSaveFromFile()
-    {
-        var path = SavePath;
-        if (!File.Exists(path)) return null;
-
-        try
-        {
-            string json = File.ReadAllText(path);
-            if (string.IsNullOrEmpty(json)) return null;
-            return JsonUtility.FromJson<CharacterSaveData>(json);
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-    }
-
     private void SaveGame()
     {
-        var data = new CharacterSaveData
-        {
-            materials = materialInventory.ToSerializableList(),
-            ownedCharacters = new List<CharacterInstance>(ownedCharacters),
-            teamInstanceIds = BuildTeamInstanceIdList(),
-            version = 1
-        };
+        EnsureTeamArray();
 
+        PlayerSaveData data = CreateOrNewPlayerSaveData();
+
+        // ownedCharacters
+        SetFieldOrPropertyValue(data, "ownedCharacters", new List<CharacterInstance>(ownedCharacters));
+
+        // materials（materials の型が List<MaterialStack> / MaterialInventoryData どちらでも入れる）
+        InjectMaterialStacksToPlayerSave(data, materialInventory.ToSerializableList());
+
+        // team ids
+        var idsArray = BuildTeamInstanceIdArray();
+        if (!TrySetTeamIdsToPlayerSave(data, idsArray))
+        {
+            // どうしても入らなければ、最低限ログだけ（クラッシュさせない）
+            Debug.LogWarning("PlayerSaveData に team ids を格納できませんでした。フィールド名を確認してください（selectedTeamInstanceIds 等）。");
+        }
+
+        // 書き込み
         var path = SavePath;
         try
         {
@@ -198,14 +252,18 @@ public class CharacterManager : MonoBehaviour
         }
         catch (IOException)
         {
-            // 何もしない（例外を投げない）
+            // 例外は投げない
         }
     }
 
-    private void ApplyTeamData(CharacterSaveData data)
+    // =========================================================
+    // チーム適用
+    // =========================================================
+    private void ApplyTeamIds(string[] ids)
     {
         EnsureTeamArray();
-        if (data == null || data.teamInstanceIds == null)
+
+        if (ids == null || ids.Length == 0)
         {
             ClearTeamSlots();
             return;
@@ -213,10 +271,15 @@ public class CharacterManager : MonoBehaviour
 
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
-            string id = i < data.teamInstanceIds.Count ? data.teamInstanceIds[i] : string.Empty;
+            string id = i < ids.Length ? ids[i] : string.Empty;
             var instance = ownedCharacters.Find(c => c != null && c.InstanceId == id);
+
             teamSlots[i] = instance;
-            TeamSetupData.SelectedTeam[i] = instance;
+
+            if (TeamSetupData.SelectedTeam != null && i < TeamSetupData.SelectedTeam.Length)
+            {
+                TeamSetupData.SelectedTeam[i] = instance;
+            }
         }
     }
 
@@ -225,12 +288,17 @@ public class CharacterManager : MonoBehaviour
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
             teamSlots[i] = null;
-            TeamSetupData.SelectedTeam[i] = null;
+
+            if (TeamSetupData.SelectedTeam != null && i < TeamSetupData.SelectedTeam.Length)
+            {
+                TeamSetupData.SelectedTeam[i] = null;
+            }
         }
     }
 
     private void EnsureTeamArray()
     {
+        // TeamSetupData.SelectedTeam は CharacterInstance[] 前提
         if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
         {
             TeamSetupData.SelectedTeam = new CharacterInstance[TeamSetupData.MaxSlots];
@@ -242,14 +310,241 @@ public class CharacterManager : MonoBehaviour
         }
     }
 
-    private List<string> BuildTeamInstanceIdList()
+    private string[] BuildTeamInstanceIdArray()
     {
-        var result = new List<string>(TeamSetupData.MaxSlots);
+        EnsureTeamArray();
+
+        var result = new string[TeamSetupData.MaxSlots];
         for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
             var instance = teamSlots != null && i < teamSlots.Length ? teamSlots[i] : null;
-            result.Add(instance != null ? instance.InstanceId : string.Empty);
+            result[i] = instance != null ? instance.InstanceId : string.Empty;
         }
         return result;
+    }
+
+    // =========================================================
+    // ファイルIO（汎用）
+    // =========================================================
+    private T ReadSaveFromFile<T>() where T : class
+    {
+        var path = SavePath;
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            if (string.IsNullOrEmpty(json)) return null;
+            return JsonUtility.FromJson<T>(json);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    private PlayerSaveData CreateOrNewPlayerSaveData()
+    {
+        // PlayerSaveData に CreateNew() があれば使う
+        var type = typeof(PlayerSaveData);
+        var mi = type.GetMethod("CreateNew", BindingFlags.Public | BindingFlags.Static);
+        if (mi != null)
+        {
+            try
+            {
+                var obj = mi.Invoke(null, null) as PlayerSaveData;
+                if (obj != null) return obj;
+            }
+            catch { }
+        }
+
+        // 無ければ new
+        try
+        {
+            return new PlayerSaveData();
+        }
+        catch
+        {
+            // ここに来るなら PlayerSaveData 側が new 不可（private ctor など）
+            // その場合は落とさず警告だけ
+            Debug.LogError("PlayerSaveData の生成に失敗しました。CreateNew() または public なコンストラクタを用意してください。");
+            return null;
+        }
+    }
+
+    // =========================================================
+    // PlayerSaveData から materials / team ids を吸い出す（型揺れ対策）
+    // =========================================================
+    private List<MaterialStack> ExtractMaterialStacksFromPlayerSave(PlayerSaveData data)
+    {
+        // 1) materials が List<MaterialStack> の場合
+        var direct = GetFieldOrPropertyValue(data, "materials") as List<MaterialStack>;
+        if (direct != null) return direct;
+
+        // 2) materials が MaterialInventoryData 等で、その中に List<MaterialStack> がある場合
+        var materialsObj = GetFieldOrPropertyValue(data, "materials");
+        if (materialsObj != null)
+        {
+            // よくある名前を順に探す
+            var listA = GetFieldOrPropertyValue(materialsObj, "items") as List<MaterialStack>;
+            if (listA != null) return listA;
+
+            var listB = GetFieldOrPropertyValue(materialsObj, "stacks") as List<MaterialStack>;
+            if (listB != null) return listB;
+
+            var listC = GetFieldOrPropertyValue(materialsObj, "list") as List<MaterialStack>;
+            if (listC != null) return listC;
+        }
+
+        return new List<MaterialStack>();
+    }
+
+    private void InjectMaterialStacksToPlayerSave(PlayerSaveData data, List<MaterialStack> stacks)
+    {
+        if (data == null) return;
+
+        // 1) materials が List<MaterialStack> として直接入るならそれで終了
+        if (TrySetFieldOrPropertyValue(data, "materials", stacks)) return;
+
+        // 2) materials が MaterialInventoryData 等の場合：その中の items/stacks に入れる
+        var materialsObj = GetFieldOrPropertyValue(data, "materials");
+        if (materialsObj == null)
+        {
+            // materials フィールドが null の場合、生成できるなら生成
+            var field = typeof(PlayerSaveData).GetField("materials", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null && field.FieldType != typeof(List<MaterialStack>))
+            {
+                try
+                {
+                    materialsObj = Activator.CreateInstance(field.FieldType);
+                    field.SetValue(data, materialsObj);
+                }
+                catch { }
+            }
+        }
+
+        if (materialsObj != null)
+        {
+            if (TrySetFieldOrPropertyValue(materialsObj, "items", stacks)) return;
+            if (TrySetFieldOrPropertyValue(materialsObj, "stacks", stacks)) return;
+            if (TrySetFieldOrPropertyValue(materialsObj, "list", stacks)) return;
+        }
+
+        Debug.LogWarning("PlayerSaveData.materials に MaterialStack リストを格納できませんでした。MaterialInventoryData 側のフィールド名（items等）を確認してください。");
+    }
+
+    private string[] ExtractTeamIdsFromPlayerSave(PlayerSaveData data)
+    {
+        if (data == null) return Array.Empty<string>();
+
+        // 1) selectedTeamInstanceIds : string[]
+        var a = GetFieldOrPropertyValue(data, "selectedTeamInstanceIds") as string[];
+        if (a != null) return a;
+
+        // 2) teamInstanceIds : List<string>（旧名）
+        var b = GetFieldOrPropertyValue(data, "teamInstanceIds") as List<string>;
+        if (b != null) return b.ToArray();
+
+        // 3) selectedTeamIds 等の別名
+        var c = GetFieldOrPropertyValue(data, "selectedTeamIds") as string[];
+        if (c != null) return c;
+
+        return Array.Empty<string>();
+    }
+
+    private bool TrySetTeamIdsToPlayerSave(PlayerSaveData data, string[] idsArray)
+    {
+        if (data == null) return false;
+
+        // selectedTeamInstanceIds : string[]
+        if (TrySetFieldOrPropertyValue(data, "selectedTeamInstanceIds", idsArray)) return true;
+
+        // teamInstanceIds : List<string>
+        if (TrySetFieldOrPropertyValue(data, "teamInstanceIds", new List<string>(idsArray))) return true;
+
+        // selectedTeamIds : string[]
+        if (TrySetFieldOrPropertyValue(data, "selectedTeamIds", idsArray)) return true;
+
+        return false;
+    }
+
+    // =========================================================
+    // 反射ユーティリティ
+    // =========================================================
+    private static object GetFieldOrPropertyValue(object obj, string name)
+    {
+        if (obj == null || string.IsNullOrEmpty(name)) return null;
+
+        var t = obj.GetType();
+
+        var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (p != null)
+        {
+            try { return p.GetValue(obj); } catch { }
+        }
+
+        var f = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (f != null)
+        {
+            try { return f.GetValue(obj); } catch { }
+        }
+
+        return null;
+    }
+
+    private static void SetFieldOrPropertyValue(object obj, string name, object value)
+    {
+        if (obj == null || string.IsNullOrEmpty(name)) return;
+
+        var t = obj.GetType();
+
+        var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (p != null && p.CanWrite)
+        {
+            try { p.SetValue(obj, value); return; } catch { }
+        }
+
+        var f = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (f != null)
+        {
+            try { f.SetValue(obj, value); return; } catch { }
+        }
+    }
+
+    private static bool TrySetFieldOrPropertyValue(object obj, string name, object value)
+    {
+        if (obj == null || string.IsNullOrEmpty(name)) return false;
+
+        var t = obj.GetType();
+
+        var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (p != null && p.CanWrite)
+        {
+            try
+            {
+                if (value == null || p.PropertyType.IsAssignableFrom(value.GetType()))
+                {
+                    p.SetValue(obj, value);
+                    return true;
+                }
+            }
+            catch { }
+        }
+
+        var f = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (f != null)
+        {
+            try
+            {
+                if (value == null || f.FieldType.IsAssignableFrom(value.GetType()))
+                {
+                    f.SetValue(obj, value);
+                    return true;
+                }
+            }
+            catch { }
+        }
+
+        return false;
     }
 }

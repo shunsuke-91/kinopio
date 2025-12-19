@@ -21,8 +21,18 @@ public class GameState : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         CurrentSave = SaveSystem.LoadOrCreate();
+
         Materials = new MaterialInventory();
-        Materials.LoadFromList(CurrentSave.materials.stacks);
+
+        // CurrentSave.materials が MaterialInventoryData 前提（stacks を持つ）
+        if (CurrentSave != null && CurrentSave.materials != null)
+        {
+            Materials.LoadFromList(CurrentSave.materials.stacks);
+        }
+        else
+        {
+            Materials.LoadFromList(null);
+        }
     }
 
     public int HighestClearedStage
@@ -62,9 +72,14 @@ public class GameState : MonoBehaviour
         return HasMaterials(costs);
     }
 
+    /// <summary>
+    /// ここは「設計(クラフト)」の実処理。
+    /// 素材を消費し、CharacterInstance を ownedCharacters に追加する。
+    /// </summary>
     public bool Craft(string blueprintID, CharacterBlueprintDatabase blueprintDb, BlueprintUnlockDatabase unlockDb)
     {
         if (string.IsNullOrEmpty(blueprintID)) return false;
+
         if (blueprintDb == null)
         {
             Debug.LogWarning("CharacterBlueprintDatabase is not assigned.");
@@ -80,6 +95,10 @@ public class GameState : MonoBehaviour
             Debug.LogWarning("GameState save data missing.");
             return false;
         }
+        if (CurrentSave.ownedCharacters == null)
+        {
+            CurrentSave.ownedCharacters = new List<CharacterInstance>();
+        }
 
         var blueprint = blueprintDb.GetByID(blueprintID);
         if (blueprint == null)
@@ -92,17 +111,13 @@ public class GameState : MonoBehaviour
 
         var costs = unlockDb.GetCraftCosts(blueprintID);
         if (!HasMaterials(costs)) return false;
-
         if (!ConsumeMaterials(costs)) return false;
 
-        var instance = new CharacterInstanceData
-        {
-            instanceId = Guid.NewGuid().ToString(),
-            blueprintID = blueprintID,
-            level = 0
-        };
+        // ★修正点：CharacterInstanceData ではなく CharacterInstance に統一
+        var instance = new CharacterInstance(blueprintID, 0, blueprintDb);
 
         CurrentSave.ownedCharacters.Add(instance);
+
         SaveMaterials();
         SaveSystem.Save(CurrentSave);
         return true;

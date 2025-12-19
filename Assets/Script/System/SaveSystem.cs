@@ -75,7 +75,7 @@ public static class SaveSystem
         if (data.progress == null) data.progress = new ProgressData();
         if (data.materials == null) data.materials = new MaterialInventoryData();
         if (data.materials.stacks == null) data.materials.stacks = new System.Collections.Generic.List<MaterialStack>();
-        if (data.ownedCharacters == null) data.ownedCharacters = new System.Collections.Generic.List<CharacterInstanceData>();
+        if (data.ownedCharacters == null) data.ownedCharacters = new System.Collections.Generic.List<CharacterInstance>();
         if (data.selectedTeamInstanceIds == null) data.selectedTeamInstanceIds = Array.Empty<string>();
     }
 }
