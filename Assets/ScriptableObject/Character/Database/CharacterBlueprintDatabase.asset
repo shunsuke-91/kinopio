@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBlueprintDatabase
   blueprints:
   - {fileID: 11400000, guid: 589b4c96fc4d94789b3240a0143353e3, type: 2}
+  - {fileID: 11400000, guid: abe2beae936bf4180bd345625d423f28, type: 2}
+  - {fileID: 11400000, guid: 61d56713f53ea409aac660deb3be32b9, type: 2}

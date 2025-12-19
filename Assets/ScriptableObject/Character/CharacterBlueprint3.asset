@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b82dcb8a27c645239f86fe2fe191aa8, type: 3}
-  m_Name: CharacterBlueprint1
+  m_Name: CharacterBlueprint3
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBlueprint
-  icon: {fileID: 2222896094826061351, guid: 83f00fae5d8df477694079f08a91c903, type: 3}
-  characterName: DefaultCharacter
-  blueprintID: DefaultCharacter
-  prefab: {fileID: 2100118466339876958, guid: 0025cd22585dc47099610c2e84e695fe, type: 3}
+  icon: {fileID: -4473438565404442286, guid: 492ee6ff48fb34b92a6f73a8d9a9cf47, type: 3}
+  characterName: pino3
+  blueprintID: pino3
+  prefab: {fileID: 2418140498078481585, guid: be237ce865f344af58ca31277a740ebc, type: 3}
   baseHP: 5
-  baseAttack: 1
+  baseAttack: 3
   baseAttackSpeed: 1
   hpPerLevel: 1
   attackPerLevel: 1

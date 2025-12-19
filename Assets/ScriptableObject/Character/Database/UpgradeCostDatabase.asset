@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a90d242a9f774111bd8656eda0fe3c2, type: 3}
+  m_Name: UpgradeCostDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeCostDatabase
+  entries:
+  - blueprintId: DefaultCharacter
+    nextLevel: 1
+    costs:
+    - materialId: wood
+      amount: 3
+  - blueprintId: DefaultCharacter
+    nextLevel: 2
+    costs:
+    - materialId: wood
+      amount: 3
+    - materialId: stone
+      amount: 1
+  - blueprintId: DefaultCharacter
+    nextLevel: 3
+    costs:
+    - materialId: godstone
+      amount: 1
