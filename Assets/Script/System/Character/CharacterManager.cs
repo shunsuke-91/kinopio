@@ -41,7 +41,14 @@ public class CharacterManager : MonoBehaviour
     public bool IsBlueprintUnlocked(string blueprintId)
     {
         if (blueprintUnlockDatabase == null) return false;
-        return blueprintUnlockDatabase.IsUnlocked(blueprintId);
+        var gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
+        if (gameState == null)
+        {
+            Debug.LogWarning("GameState not found; cannot evaluate blueprint unlocks.");
+            return false;
+        }
+
+        return gameState.IsUnlocked(blueprintId, blueprintUnlockDatabase);
     }
 
     public bool TryCraft(string blueprintId)
