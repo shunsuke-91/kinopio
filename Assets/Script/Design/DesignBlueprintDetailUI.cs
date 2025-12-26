@@ -11,12 +11,16 @@ public class DesignBlueprintDetailUI : MonoBehaviour
     [SerializeField] private TMP_Text costText;
     [SerializeField] private Button craftButton;
     [SerializeField] private TMP_Text resultText;
+
     [SerializeField] private CharacterBlueprintDatabase blueprintDb;
     [SerializeField] private BlueprintUnlockDatabase unlockDb;
     [SerializeField] private GameState gameState;
 
     private CharacterBlueprint currentBlueprint;
     private DesignBlueprintListUI listUI;
+
+    private CharacterManager CM =>
+        CharacterManager.Instance != null ? CharacterManager.Instance : FindFirstObjectByType<CharacterManager>();
 
     private void Start()
     {
@@ -48,11 +52,13 @@ public class DesignBlueprintDetailUI : MonoBehaviour
     public void Show(CharacterBlueprint bp)
     {
         currentBlueprint = bp;
+
         if (bp == null)
         {
             Debug.LogWarning("DesignBlueprintDetailUI.Show called with null blueprint.");
             return;
         }
+
         if (icon == null || nameText == null || unlockText == null || costText == null || resultText == null)
         {
             Debug.LogWarning("DesignBlueprintDetailUI is missing references.");
@@ -63,7 +69,12 @@ public class DesignBlueprintDetailUI : MonoBehaviour
         nameText.text = bp.characterName;
         resultText.text = string.Empty;
 
-        bool unlocked = gameState != null && unlockDb != null && gameState.IsUnlocked(bp.blueprintID, unlockDb);
+        bool unlocked = false;
+        if (gameState != null && unlockDb != null)
+        {
+            unlocked = gameState.IsUnlocked(bp.blueprintID, unlockDb);
+        }
+
         if (unlockDb == null)
         {
             unlockText.text = "Unlock data missing";
@@ -93,7 +104,7 @@ public class DesignBlueprintDetailUI : MonoBehaviour
         }
 
         var costs = unlockDb.GetCraftCosts(bp.blueprintID);
-        if (costs.Count == 0)
+        if (costs == null || costs.Count == 0)
         {
             costText.text = "No materials required";
             return;
@@ -103,7 +114,11 @@ public class DesignBlueprintDetailUI : MonoBehaviour
         foreach (var cost in costs)
         {
             if (cost == null || string.IsNullOrEmpty(cost.materialId)) continue;
-            int owned = gameState != null ? gameState.Materials.GetCount(cost.materialId) : 0;
+
+            int owned = 0;
+            if (gameState != null && gameState.Materials != null)
+                owned = gameState.Materials.GetCount(cost.materialId);
+
             sb.AppendLine($"{cost.materialId}: {owned}/{cost.count}");
         }
 
@@ -113,13 +128,19 @@ public class DesignBlueprintDetailUI : MonoBehaviour
     private void UpdateCraftButton(bool unlocked)
     {
         if (craftButton == null) return;
+
+        // 今の方針：設計できるかの判定は CharacterManager.TryCraft の前段で行う
+        // ここでは「素材が足りているか」だけ GameState で見て、ロックは unlock 判定
         if (gameState == null || unlockDb == null || currentBlueprint == null)
         {
             craftButton.interactable = false;
             return;
         }
 
-        craftButton.interactable = unlocked && gameState.CanCraft(currentBlueprint.blueprintID, unlockDb);
+        var costs = unlockDb.GetCraftCosts(currentBlueprint.blueprintID);
+        bool hasMaterials = gameState.HasMaterials(costs);
+
+        craftButton.interactable = unlocked && hasMaterials;
     }
 
     private void OnClickCraft()
@@ -135,22 +156,23 @@ public class DesignBlueprintDetailUI : MonoBehaviour
             return;
         }
 
-        if (gameState == null)
+        if (CM == null)
         {
-            resultText.text = "Game state missing";
-            return;
-        }
-        if (blueprintDb == null || unlockDb == null)
-        {
-            resultText.text = "Database missing";
+            resultText.text = "CharacterManager missing";
             return;
         }
 
-        bool success = gameState.Craft(currentBlueprint.blueprintID, blueprintDb, unlockDb);
+        bool success = CM.TryCraft(currentBlueprint.blueprintID);
         resultText.text = success ? "Crafted!" : "Craft failed";
 
         UpdateCostText(currentBlueprint);
-        UpdateCraftButton(gameState.IsUnlocked(currentBlueprint.blueprintID, unlockDb));
+
+        bool unlocked = false;
+        if (gameState != null && unlockDb != null)
+            unlocked = gameState.IsUnlocked(currentBlueprint.blueprintID, unlockDb);
+
+        UpdateCraftButton(unlocked);
+
         if (listUI != null)
         {
             listUI.Refresh();

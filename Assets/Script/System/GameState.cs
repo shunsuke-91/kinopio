@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,17 +21,18 @@ public class GameState : MonoBehaviour
 
         CurrentSave = SaveSystem.LoadOrCreate();
 
-        Materials = new MaterialInventory();
+        // null 安全化
+        if (CurrentSave.progress == null) CurrentSave.progress = new ProgressData();
+        if (CurrentSave.materials == null) CurrentSave.materials = new MaterialInventoryData();
+        if (CurrentSave.materials.stacks == null) CurrentSave.materials.stacks = new List<MaterialStack>();
+        if (CurrentSave.ownedCharacters == null) CurrentSave.ownedCharacters = new List<CharacterInstance>();
 
-        // CurrentSave.materials が MaterialInventoryData 前提（stacks を持つ）
-        if (CurrentSave != null && CurrentSave.materials != null)
-        {
-            Materials.LoadFromList(CurrentSave.materials.stacks);
-        }
-        else
-        {
-            Materials.LoadFromList(null);
-        }
+        // 素材をロード
+        Materials = new MaterialInventory();
+        Materials.LoadFromList(CurrentSave.materials.stacks);
+
+        // チーム配列の初期化（セーブ側も合わせる）
+        EnsureTeamIdsArray();
     }
 
     public int HighestClearedStage
@@ -40,129 +40,78 @@ public class GameState : MonoBehaviour
         get => CurrentSave != null && CurrentSave.progress != null ? CurrentSave.progress.highestClearedStage : 0;
         set
         {
-            if (CurrentSave == null || CurrentSave.progress == null)
-            {
-                Debug.LogWarning("GameState not initialized; cannot set HighestClearedStage.");
-                return;
-            }
-
+            if (CurrentSave == null || CurrentSave.progress == null) return;
             CurrentSave.progress.highestClearedStage = value;
-            SaveMaterials();
-            SaveSystem.Save(CurrentSave);
+            Save();
         }
     }
 
     public bool IsUnlocked(string blueprintID, BlueprintUnlockDatabase db)
     {
-        if (string.IsNullOrEmpty(blueprintID)) return false;
-        if (db == null)
-        {
-            Debug.LogWarning("BlueprintUnlockDatabase is not assigned.");
-            return false;
-        }
-
+        if (string.IsNullOrEmpty(blueprintID) || db == null) return false;
         int requiredStage = db.GetUnlockStage(blueprintID);
         return HighestClearedStage >= requiredStage;
     }
 
-    public bool CanCraft(string blueprintID, BlueprintUnlockDatabase db)
+    public bool HasMaterials(List<MaterialStack> costs)
     {
-        if (!IsUnlocked(blueprintID, db)) return false;
-        var costs = db.GetCraftCosts(blueprintID);
-        return HasMaterials(costs);
+        if (costs == null || costs.Count == 0) return true;
+
+        foreach (var cost in costs)
+        {
+            if (cost == null || string.IsNullOrEmpty(cost.materialId)) continue;
+            if (Materials.GetCount(cost.materialId) < cost.count) return false;
+        }
+        return true;
+    }
+
+    public bool ConsumeMaterials(List<MaterialStack> costs)
+    {
+        if (costs == null || costs.Count == 0) return true;
+        if (!HasMaterials(costs)) return false;
+
+        foreach (var cost in costs)
+        {
+            if (cost == null || string.IsNullOrEmpty(cost.materialId)) continue;
+            if (!Materials.TryConsume(cost.materialId, cost.count)) return false;
+        }
+
+        return true;
     }
 
     /// <summary>
-    /// ここは「設計(クラフト)」の実処理。
-    /// 素材を消費し、CharacterInstance を ownedCharacters に追加する。
+    /// Materials → CurrentSave.materials に反映して保存
     /// </summary>
-    public bool Craft(string blueprintID, CharacterBlueprintDatabase blueprintDb, BlueprintUnlockDatabase unlockDb)
+    public void Save()
     {
-        if (string.IsNullOrEmpty(blueprintID)) return false;
-
-        if (blueprintDb == null)
-        {
-            Debug.LogWarning("CharacterBlueprintDatabase is not assigned.");
-            return false;
-        }
-        if (unlockDb == null)
-        {
-            Debug.LogWarning("BlueprintUnlockDatabase is not assigned.");
-            return false;
-        }
-        if (CurrentSave == null)
-        {
-            Debug.LogWarning("GameState save data missing.");
-            return false;
-        }
-        if (CurrentSave.ownedCharacters == null)
-        {
-            CurrentSave.ownedCharacters = new List<CharacterInstance>();
-        }
-
-        var blueprint = blueprintDb.GetByID(blueprintID);
-        if (blueprint == null)
-        {
-            Debug.LogWarning($"Blueprint not found for id: {blueprintID}");
-            return false;
-        }
-
-        if (!IsUnlocked(blueprintID, unlockDb)) return false;
-
-        var costs = unlockDb.GetCraftCosts(blueprintID);
-        if (!HasMaterials(costs)) return false;
-        if (!ConsumeMaterials(costs)) return false;
-
-        // ★修正点：CharacterInstanceData ではなく CharacterInstance に統一
-        var instance = new CharacterInstance(blueprintID, 0, blueprintDb);
-
-        CurrentSave.ownedCharacters.Add(instance);
-
-        SaveMaterials();
-        SaveSystem.Save(CurrentSave);
-        return true;
-    }
-
-    private bool HasMaterials(List<MaterialStack> costs)
-    {
-        if (costs == null || costs.Count == 0) return true;
-        if (Materials == null)
-        {
-            Debug.LogWarning("MaterialInventory is not initialized.");
-            return false;
-        }
-
-        foreach (var cost in costs)
-        {
-            if (cost == null || string.IsNullOrEmpty(cost.materialId)) continue;
-            int owned = Materials.GetCount(cost.materialId);
-            if (owned < cost.count) return false;
-        }
-
-        return true;
-    }
-
-    private bool ConsumeMaterials(List<MaterialStack> costs)
-    {
-        if (costs == null || costs.Count == 0) return true;
-        if (!HasMaterials(costs)) return false;
-
-        foreach (var cost in costs)
-        {
-            if (cost == null || string.IsNullOrEmpty(cost.materialId)) continue;
-            if (!Materials.TryConsume(cost.materialId, cost.count))
-            {
-                Debug.LogWarning("Failed to consume materials after passing availability check.");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void SaveMaterials()
-    {
-        if (CurrentSave == null || CurrentSave.materials == null) return;
+        if (CurrentSave == null) return;
+        if (CurrentSave.materials == null) CurrentSave.materials = new MaterialInventoryData();
         CurrentSave.materials.stacks = Materials.ToSerializableList();
+        SaveSystem.Save(CurrentSave);
+    }
+
+    /// <summary>
+    /// selectedTeamInstanceIds を常に MaxSlots 長に揃える
+    /// </summary>
+    public void EnsureTeamIdsArray()
+    {
+        int n = TeamSetupData.MaxSlots;
+
+        if (CurrentSave.selectedTeamInstanceIds == null || CurrentSave.selectedTeamInstanceIds.Length != n)
+        {
+            var newArr = new string[n];
+            if (CurrentSave.selectedTeamInstanceIds != null)
+            {
+                int copyLen = Mathf.Min(CurrentSave.selectedTeamInstanceIds.Length, n);
+                for (int i = 0; i < copyLen; i++) newArr[i] = CurrentSave.selectedTeamInstanceIds[i];
+            }
+            CurrentSave.selectedTeamInstanceIds = newArr;
+        }
+
+        // ランタイム側も初期化
+        if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != n)
+        {
+            TeamSetupData.SelectedTeam = new CharacterInstance[n];
+        }
     }
 }

@@ -29,9 +29,9 @@ public class TeamSettingManager : MonoBehaviour
             return;
         }
 
-        // ===== ★ここが「最小1行追加」 =====
-        CharacterManager.Instance.SyncTeamToRuntimeData();
-        // ==================================
+        // ★方針変更：SyncTeamToRuntimeData は廃止。
+        // 編成変更時に CharacterManager.SetTeamSlot() が GameState.Save() まで行っている前提。
+        // ここで余計な同期処理は不要。
 
         SceneManager.LoadScene("BattleScene");
     }

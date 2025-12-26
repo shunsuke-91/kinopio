@@ -11,7 +11,6 @@ public class StageSelectManager : MonoBehaviour
 
     private int selectedStageIndex = -1;
 
-
     // ========================================================
     // ステージボタンを押した瞬間の処理
     // ========================================================
@@ -32,7 +31,6 @@ public class StageSelectManager : MonoBehaviour
         UpdateDifficultyButtons(index);
     }
 
-
     // ========================================================
     // 難易度ボタンを押した時の処理（Normal/Hard/Hell）
     // diffIndex → 0=Normal, 1=Hard, 2=Hell
@@ -45,25 +43,31 @@ public class StageSelectManager : MonoBehaviour
             return;
         }
 
-        // 選んだステージデータを保存（Static のままでOK）
+        // 選んだステージデータを保存
         StageLoader.selectedStage = stageList[selectedStageIndex];
 
         // 選んだ難易度を保存
         StageLoader.selectedDifficulty = (DifficultyType)diffIndex;
 
-        // ここを BattleScene ではなく「編成シーン」に変更
+        // 編成シーンへ
         SceneManager.LoadScene("SettingScene");
     }
 
+    // ========================================================
+    // ★追加：Craft（設計）シーンへ移動
+    // ========================================================
+    public void OnClickGoToCraft()
+    {
+        // ステージ未選択でも問題なし
+        // Craftは常時アクセス可能な設計シーン
+        SceneManager.LoadScene("DesignScene");
+    }
 
     // ========================================================
-    // 難易度ボタン（Normal/Hard/Hell）の解放状況を反映
-    // Normalクリア → Hard解放
-    // Hardクリア → Hell解放
+    // 難易度ボタンの解放状況を反映
     // ========================================================
     private void UpdateDifficultyButtons(int stageIndex)
     {
-        // パネル内のボタンを探す（名前一致前提）
         Transform normalBtn = difficultyPanel.transform.Find("NormalButton");
         Transform hardBtn   = difficultyPanel.transform.Find("HardButton");
         Transform hellBtn   = difficultyPanel.transform.Find("HellButton");
@@ -77,24 +81,19 @@ public class StageSelectManager : MonoBehaviour
         // Normal は常に ON
         normalBtn.gameObject.SetActive(true);
 
-        // PlayerPrefs のクリア状況
         bool normalCleared = PlayerPrefs.GetInt($"Stage{stageIndex}_NormalClear", 0) == 1;
         bool hardCleared   = PlayerPrefs.GetInt($"Stage{stageIndex}_HardClear", 0) == 1;
 
-        // Hard → Normalクリアで解放
         hardBtn.gameObject.SetActive(normalCleared);
-
-        // Hell → Hardクリアで解放
         hellBtn.gameObject.SetActive(hardCleared);
     }
 
-
     // ========================================================
-    // 「close」ボタンでパネルを閉じる
+    // パネルを閉じる
     // ========================================================
     public void CloseDifficultyPanel()
     {
         difficultyPanel.SetActive(false);
-        selectedStageIndex = -1; // 念のためリセット
+        selectedStageIndex = -1;
     }
 }
