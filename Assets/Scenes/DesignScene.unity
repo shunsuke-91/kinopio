@@ -822,6 +822,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1321868649}
+  - component: {fileID: 1321868650}
   m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
@@ -848,6 +849,32 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
+--- !u!114 &1321868650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1321868648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_Spacing: 40
+  m_ChildForceExpandWidth: 1
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 1
+  m_ChildControlHeight: 1
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &1527098875
 GameObject:
   m_ObjectHideFlags: 0
@@ -989,12 +1016,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DesignBlueprintListUI
   contentParent: {fileID: 1321868649}
-  buttonPrefab: {fileID: 4279780870758801208, guid: 42c3a1c0827e144aaa82f6b6262b534c, type: 3}
+  buttonPrefab: {fileID: 7073277060398699425, guid: 83cb45381af8d4016a2382c3be8d9d7d, type: 3}
   allBlueprints:
   - {fileID: 11400000, guid: 589b4c96fc4d94789b3240a0143353e3, type: 2}
   - {fileID: 11400000, guid: abe2beae936bf4180bd345625d423f28, type: 2}
   - {fileID: 11400000, guid: 61d56713f53ea409aac660deb3be32b9, type: 2}
-  unknownSprite: {fileID: 2222896094826061351, guid: 83f00fae5d8df477694079f08a91c903, type: 3}
+  unknownSprite: {fileID: -6934196540935342278, guid: 7125324cde81a456fb68a86b96690e7d, type: 3}
   blueprintDb: {fileID: 11400000, guid: 99d9de0675d1d410aac519f66667196f, type: 2}
   unlockDb: {fileID: 11400000, guid: 30218607c1d794ae7a87ace33ed1ab2d, type: 2}
   detailUI: {fileID: 1050819296}

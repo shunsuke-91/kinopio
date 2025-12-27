@@ -14,5 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BlueprintUnlockDatabase
   entries:
   - blueprintID: DefaultCharacter
+    unlockStage: 0
+    craftCosts: []
+  - blueprintID: pino2
+    unlockStage: 1
+    craftCosts: []
+  - blueprintID: pino3
     unlockStage: 1
     craftCosts: []
