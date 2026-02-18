@@ -44,6 +44,28 @@ public class GameState : MonoBehaviour
 
         // セーブの編成IDからランタイムを復元
         RestoreRuntimeTeamFromSave();
+
+    }
+
+    public void RebuildSelectedTeamFromSave()
+    {
+        EnsureTeamIdsArray();
+
+        if (CurrentSave == null || CurrentSave.ownedCharacters == null) return;
+        if (CurrentSave.selectedTeamInstanceIds == null) return;
+
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
+        {
+            string id = CurrentSave.selectedTeamInstanceIds[i];
+            if (string.IsNullOrEmpty(id))
+            {
+                TeamSetupData.SelectedTeam[i] = null;
+                continue;
+            }
+
+            var inst = CurrentSave.ownedCharacters.Find(c => c != null && c.InstanceId == id);
+            TeamSetupData.SelectedTeam[i] = inst;
+        }
     }
 
     // =========================================================
@@ -285,4 +307,5 @@ public class GameState : MonoBehaviour
         Save();
         return true;
     }
+
 }

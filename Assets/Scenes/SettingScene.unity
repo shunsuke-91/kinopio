@@ -903,10 +903,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c76e5dfcf2dc4331b43145bf6dd4036, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterScrollView
-  characterManager: {fileID: 0}
-  teamSetupUI: {fileID: 2053828547}
-  characterButtonPrefab: {fileID: 3631589226060356392, guid: b991a04ddc3174f3283b723481246da1, type: 3}
   contentParent: {fileID: 577841051}
+  characterButtonPrefab: {fileID: 3043493136349219661, guid: b991a04ddc3174f3283b723481246da1, type: 3}
+  blueprintDatabase: {fileID: 11400000, guid: 99d9de0675d1d410aac519f66667196f, type: 2}
+  teamSetupUI: {fileID: 2053828547}
+  gameState: {fileID: 0}
 --- !u!4 &458969183
 Transform:
   m_ObjectHideFlags: 0
@@ -3049,7 +3050,7 @@ MonoBehaviour:
   - {fileID: 1043032081}
   - {fileID: 744233281}
   selectedSlotLabel: {fileID: 630768021}
-  characterManager: {fileID: 0}
+  gameState: {fileID: 0}
 --- !u!1 &2085141751
 GameObject:
   m_ObjectHideFlags: 0

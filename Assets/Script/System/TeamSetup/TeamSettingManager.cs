@@ -16,11 +16,7 @@ public class TeamSettingManager : MonoBehaviour
         bool hasAny = false;
         for (int i = 0; i < team.Length; i++)
         {
-            if (team[i] != null)
-            {
-                hasAny = true;
-                break;
-            }
+            if (team[i] != null) { hasAny = true; break; }
         }
 
         if (!hasAny)
@@ -29,9 +25,11 @@ public class TeamSettingManager : MonoBehaviour
             return;
         }
 
-        // ★方針変更：SyncTeamToRuntimeData は廃止。
-        // 編成変更時に CharacterManager.SetTeamSlot() が GameState.Save() まで行っている前提。
-        // ここで余計な同期処理は不要。
+        // ★ここ：編成をセーブに反映してから遷移
+        if (GameState.Instance != null)
+        {
+            GameState.Instance.SaveTeamFromRuntime();
+        }
 
         SceneManager.LoadScene("BattleScene");
     }
