@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class CharacterScrollView : MonoBehaviour
 {
@@ -18,20 +19,29 @@ public class CharacterScrollView : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private GameState gameState;
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // シーン移動で戻ってきた時も最新で描画したい
+        if (Application.isPlaying) Refresh();
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
     private void Start()
     {
-        if (gameState == null)
-        {
-            gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
-        }
-
+        ResolveGameState();
         Refresh();
     }
 
-    private void OnEnable()
+    private void OnSceneLoaded(Scene _, LoadSceneMode __)
     {
-        // シーン移動で戻ってきた時も最新で描画したい
-        if (Application.isPlaying) Refresh();
+        ResolveGameState();
+        Refresh();
     }
 
     public void Refresh()
@@ -42,7 +52,10 @@ public class CharacterScrollView : MonoBehaviour
             return;
         }
 
-        if (gameState == null || gameState.CurrentSave == null || gameState.CurrentSave.ownedCharacters == null)
+        ResolveGameState();
+
+        var ownedList = GetOwnedCharacters();
+        if (ownedList == null)
         {
             Debug.LogWarning("CharacterScrollView: GameState or save data missing.");
             Clear();
@@ -53,7 +66,7 @@ public class CharacterScrollView : MonoBehaviour
         // ※GameState側でやってるなら無くてもOKだが、ここで保険をかける
         if (blueprintDatabase != null)
         {
-            foreach (var c in gameState.CurrentSave.ownedCharacters)
+            foreach (var c in ownedList)
             {
                 if (c == null) continue;
                 c.AssignBlueprintDatabase(blueprintDatabase);
@@ -63,10 +76,9 @@ public class CharacterScrollView : MonoBehaviour
         Clear();
 
         // ★ここが重要：GameStateの ownedCharacters（＝実体）を全部並べる
-        var list = gameState.CurrentSave.ownedCharacters;
-        for (int i = 0; i < list.Count; i++)
+        for (int i = 0; i < ownedList.Count; i++)
         {
-            var inst = list[i];
+            var inst = ownedList[i];
             if (inst == null) continue;
 
             var btn = Instantiate(characterButtonPrefab, contentParent);
@@ -98,5 +110,21 @@ public class CharacterScrollView : MonoBehaviour
         {
             Destroy(contentParent.GetChild(i).gameObject);
         }
+    }
+
+    private void ResolveGameState()
+    {
+        gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
+    }
+
+    private List<CharacterInstance> GetOwnedCharacters()
+    {
+        if (gameState == null || gameState.CurrentSave == null)
+            return null;
+
+        if (gameState.CurrentSave.ownedCharacters == null)
+            gameState.CurrentSave.ownedCharacters = new List<CharacterInstance>();
+
+        return gameState.CurrentSave.ownedCharacters;
     }
 }
