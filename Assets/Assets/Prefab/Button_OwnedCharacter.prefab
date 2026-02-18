@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 1815707557485801896}
   - component: {fileID: 310372430356589150}
   - component: {fileID: 8934606335820628428}
+  - component: {fileID: 1439445117496894294}
   m_Layer: 5
   m_Name: Button_OwnedCharacter
   m_TagString: Untagged
@@ -238,7 +239,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6752918512003260934}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -352,6 +353,26 @@ MonoBehaviour:
   levelText: {fileID: 3066622190867545151}
   button: {fileID: 310372430356589150}
   canvasGroup: {fileID: 0}
+--- !u!114 &1439445117496894294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6752918512003260934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: 120
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: 0
+  m_LayoutPriority: 1
 --- !u!1 &8491711692028758943
 GameObject:
   m_ObjectHideFlags: 0

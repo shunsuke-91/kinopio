@@ -1,8 +1,6 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 
 public class CharacterScrollView : MonoBehaviour
 {
@@ -19,29 +17,19 @@ public class CharacterScrollView : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private GameState gameState;
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-
-        // シーン移動で戻ってきた時も最新で描画したい
-        if (Application.isPlaying) Refresh();
-    }
-
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
     private void Start()
     {
-        ResolveGameState();
+        if (gameState == null)
+        {
+            gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
+        }
+
         Refresh();
     }
 
-    private void OnSceneLoaded(Scene _, LoadSceneMode __)
+    private void OnEnable()
     {
-        ResolveGameState();
-        Refresh();
+        if (Application.isPlaying) Refresh();
     }
 
     public void Refresh()
@@ -52,21 +40,17 @@ public class CharacterScrollView : MonoBehaviour
             return;
         }
 
-        ResolveGameState();
-
-        var ownedList = GetOwnedCharacters();
-        if (ownedList == null)
+        if (gameState == null || gameState.CurrentSave == null || gameState.CurrentSave.ownedCharacters == null)
         {
             Debug.LogWarning("CharacterScrollView: GameState or save data missing.");
             Clear();
             return;
         }
 
-        // BlueprintDBの再注入（NonSerialized対策）
-        // ※GameState側でやってるなら無くてもOKだが、ここで保険をかける
+        // NonSerialized対策（保険）
         if (blueprintDatabase != null)
         {
-            foreach (var c in ownedList)
+            foreach (var c in gameState.CurrentSave.ownedCharacters)
             {
                 if (c == null) continue;
                 c.AssignBlueprintDatabase(blueprintDatabase);
@@ -75,27 +59,45 @@ public class CharacterScrollView : MonoBehaviour
 
         Clear();
 
-        // ★ここが重要：GameStateの ownedCharacters（＝実体）を全部並べる
-        for (int i = 0; i < ownedList.Count; i++)
+        var list = gameState.CurrentSave.ownedCharacters;
+        Debug.Log("ownedCharacters count = " + list.Count);
+
+        for (int i = 0; i < list.Count; i++)
         {
-            var inst = ownedList[i];
+            var inst = list[i];
             if (inst == null) continue;
 
             var btn = Instantiate(characterButtonPrefab, contentParent);
 
-            // 表示（子の Image / TMP_Text を使う想定）
-            var img = btn.GetComponentInChildren<Image>(true);
-            var txt = btn.GetComponentInChildren<TMP_Text>(true);
+            // ★重要：背景Imageではなく「Icon」だけを取る
+            var iconTr = btn.transform.Find("Icon");
+            var iconImg = iconTr != null ? iconTr.GetComponent<Image>() : null;
 
-            var bp = inst.Blueprint; // AssignBlueprintDatabase済なら取れる
-            if (img != null) img.sprite = bp != null ? bp.icon : null;
+            // テキストも名前で取る（無ければ従来通り子から拾う）
+            var textTr = btn.transform.Find("NameText");
+            var txt = textTr != null ? textTr.GetComponent<TMP_Text>() : btn.GetComponentInChildren<TMP_Text>(true);
+
+            var bp = inst.Blueprint;
+
+            if (iconImg != null)
+            {
+                iconImg.sprite = bp != null ? bp.icon : null;
+
+                // 潰れ対策（ここで必ず有効化）
+                iconImg.preserveAspect = true;
+                iconImg.type = Image.Type.Simple;
+            }
+            else
+            {
+                Debug.LogWarning("CharacterScrollView: Button prefab has no child Image named 'Icon'.");
+            }
+
             if (txt != null)
             {
                 string name = bp != null ? bp.characterName : inst.BlueprintId;
                 txt.text = $"{name}  Lv.{inst.Level}";
             }
 
-            // クリックで編成UIへ渡す（同じキャラが複数いても、instance単位で別物）
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() =>
             {
@@ -110,21 +112,5 @@ public class CharacterScrollView : MonoBehaviour
         {
             Destroy(contentParent.GetChild(i).gameObject);
         }
-    }
-
-    private void ResolveGameState()
-    {
-        gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
-    }
-
-    private List<CharacterInstance> GetOwnedCharacters()
-    {
-        if (gameState == null || gameState.CurrentSave == null)
-            return null;
-
-        if (gameState.CurrentSave.ownedCharacters == null)
-            gameState.CurrentSave.ownedCharacters = new List<CharacterInstance>();
-
-        return gameState.CurrentSave.ownedCharacters;
     }
 }

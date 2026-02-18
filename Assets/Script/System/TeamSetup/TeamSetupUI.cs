@@ -1,6 +1,6 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class TeamSetupUI : MonoBehaviour
 {
@@ -13,7 +13,7 @@ public class TeamSetupUI : MonoBehaviour
     [Header("現在選択中スロットの表示ラベル（例：\"スロット1選択中\"）")]
     [SerializeField] private TextMeshProUGUI selectedSlotLabel;
 
-    [Header("未設定なら自動検索")]
+    [Header("Runtime (未設定なら自動検索)")]
     [SerializeField] private GameState gameState;
 
     private int currentSelectedSlotIndex = -1;
@@ -21,94 +21,100 @@ public class TeamSetupUI : MonoBehaviour
     private void Awake()
     {
         if (gameState == null)
-        {
             gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
-        }
     }
 
     private void Start()
     {
-        // ボタン押下 → スロット選択
         if (teamSlotButtons != null)
         {
             for (int i = 0; i < teamSlotButtons.Length; i++)
             {
                 int slotIndex = i;
-                if (teamSlotButtons[i] == null) continue;
-
                 teamSlotButtons[i].onClick.RemoveAllListeners();
                 teamSlotButtons[i].onClick.AddListener(() => OnClickTeamSlot(slotIndex));
             }
         }
 
         UpdateSelectedSlotLabel();
-        RefreshSlotIconsFromRuntime();
+        RefreshSlotIconsFromData();
     }
 
     private void OnClickTeamSlot(int slotIndex)
     {
         currentSelectedSlotIndex = slotIndex;
         UpdateSelectedSlotLabel();
-        Debug.Log($"[TeamSetupUI] Selected slot {slotIndex + 1}");
+        Debug.Log($"[TeamSetupUI] slot {slotIndex + 1} selected");
     }
 
-    // =========================================================
-    // ★互換メソッド（既存コードが呼んでいる名前）
-    // CharacterScrollView が teamSetupUI.OnCharacterSelected(inst) を呼ぶ想定に合わせる
-    // =========================================================
+    // ★ CharacterScrollView から呼ばれる入口（あなたのエラー原因だったやつ）
     public void OnCharacterSelected(CharacterInstance instance)
     {
         AssignCharacterToCurrentSlot(instance);
     }
 
-    /// <summary>
-    /// 「このキャラを今選んでるスロットに入れる」
-    /// </summary>
     public void AssignCharacterToCurrentSlot(CharacterInstance instance)
     {
-        if (instance == null)
-        {
-            Debug.LogWarning("[TeamSetupUI] Assign failed: instance is null.");
-            return;
-        }
-
         if (currentSelectedSlotIndex < 0 || currentSelectedSlotIndex >= TeamSetupData.MaxSlots)
         {
-            Debug.LogWarning("[TeamSetupUI] Assign failed: slot not selected.");
+            Debug.LogWarning("[TeamSetupUI] スロットが未選択です。先にスロットボタンを押してください。");
             return;
         }
 
-        // ランタイム配列の安全化
-        EnsureRuntimeTeamArray();
+        if (instance == null)
+        {
+            Debug.LogWarning("[TeamSetupUI] instance が null");
+            return;
+        }
 
-        // 同じ「インスタンス」を複数スロットに入れない（同キャラ3体OK、同インスタンス重複だけNG）
-        for (int i = 0; i < TeamSetupData.SelectedTeam.Length; i++)
+        // TeamSetupData の配列を必ず準備
+        if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
+        {
+            TeamSetupData.SelectedTeam = new CharacterInstance[TeamSetupData.MaxSlots];
+        }
+
+        // ★重複禁止：「同じ instance」を他スロットに入れたら外す（Blueprint重複はOK）
+        for (int i = 0; i < TeamSetupData.MaxSlots; i++)
         {
             if (i == currentSelectedSlotIndex) continue;
-            if (TeamSetupData.SelectedTeam[i] == null) continue;
 
-            if (ReferenceEquals(TeamSetupData.SelectedTeam[i], instance))
+            var other = TeamSetupData.SelectedTeam[i];
+            if (other == null) continue;
+
+            if (ReferenceEquals(other, instance) || (!string.IsNullOrEmpty(other.InstanceId) && other.InstanceId == instance.InstanceId))
             {
                 TeamSetupData.SelectedTeam[i] = null;
-                ClearSlotIcon(i);
+
+                if (teamSlotImages != null && i < teamSlotImages.Length && teamSlotImages[i] != null)
+                {
+                    teamSlotImages[i].sprite = null;
+                    teamSlotImages[i].enabled = false;
+                }
+
+                Debug.Log($"[TeamSetupUI] duplicate instance removed from slot {i + 1} (InstanceId={instance.InstanceId})");
             }
         }
 
         // セット
         TeamSetupData.SelectedTeam[currentSelectedSlotIndex] = instance;
-        SetSlotIcon(currentSelectedSlotIndex, instance);
 
-        // セーブ側へ同期（GameState に統一している前提）
-        if (gameState == null)
+        // 見た目
+        if (teamSlotImages != null &&
+            currentSelectedSlotIndex < teamSlotImages.Length &&
+            teamSlotImages[currentSelectedSlotIndex] != null)
         {
-            gameState = GameState.Instance != null ? GameState.Instance : FindFirstObjectByType<GameState>();
+            var bp = instance.Blueprint;
+            teamSlotImages[currentSelectedSlotIndex].sprite = bp != null ? bp.icon : null;
+            teamSlotImages[currentSelectedSlotIndex].enabled = (teamSlotImages[currentSelectedSlotIndex].sprite != null);
         }
+
+        Debug.Log($"[TeamSetupUI] slot {currentSelectedSlotIndex + 1} set InstanceId={instance.InstanceId} BlueprintId={instance.BlueprintId}");
+
+        // ★ここが大事：ランタイム→セーブへ同期（BattleSceneでも同じになる）
         if (gameState != null)
         {
             gameState.SaveTeamFromRuntime();
         }
-
-        Debug.Log($"[TeamSetupUI] Assigned instanceId={instance.InstanceId} to slot {currentSelectedSlotIndex + 1}");
     }
 
     private void UpdateSelectedSlotLabel()
@@ -121,64 +127,25 @@ public class TeamSetupUI : MonoBehaviour
             selectedSlotLabel.text = $"スロット {currentSelectedSlotIndex + 1} 選択中";
     }
 
-    /// <summary>
-    /// 画面表示を「TeamSetupData.SelectedTeam」の現在値で描画し直す
-    /// </summary>
-    public void RefreshSlotIconsFromRuntime()
+    private void RefreshSlotIconsFromData()
     {
-        EnsureRuntimeTeamArray();
-
         if (teamSlotImages == null) return;
+
+        if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != TeamSetupData.MaxSlots)
+        {
+            TeamSetupData.SelectedTeam = new CharacterInstance[TeamSetupData.MaxSlots];
+        }
 
         for (int i = 0; i < teamSlotImages.Length && i < TeamSetupData.SelectedTeam.Length; i++)
         {
-            var inst = TeamSetupData.SelectedTeam[i];
-            if (inst != null)
-                SetSlotIcon(i, inst);
-            else
-                ClearSlotIcon(i);
-        }
-    }
+            var img = teamSlotImages[i];
+            if (img == null) continue;
 
-    private void SetSlotIcon(int index, CharacterInstance inst)
-    {
-        if (teamSlotImages == null) return;
-        if (index < 0 || index >= teamSlotImages.Length) return;
+            var ins = TeamSetupData.SelectedTeam[i];
+            var bp = ins != null ? ins.Blueprint : null;
 
-        var img = teamSlotImages[index];
-        if (img == null) return;
-
-        var bp = inst.Blueprint;
-        if (bp == null || bp.icon == null)
-        {
-            img.sprite = null;
-            img.enabled = false;
-            return;
-        }
-
-        img.sprite = bp.icon;
-        img.enabled = true;
-    }
-
-    private void ClearSlotIcon(int index)
-    {
-        if (teamSlotImages == null) return;
-        if (index < 0 || index >= teamSlotImages.Length) return;
-
-        var img = teamSlotImages[index];
-        if (img == null) return;
-
-        img.sprite = null;
-        img.enabled = false;
-    }
-
-    private void EnsureRuntimeTeamArray()
-    {
-        int n = TeamSetupData.MaxSlots;
-
-        if (TeamSetupData.SelectedTeam == null || TeamSetupData.SelectedTeam.Length != n)
-        {
-            TeamSetupData.SelectedTeam = new CharacterInstance[n];
+            img.sprite = bp != null ? bp.icon : null;
+            img.enabled = (img.sprite != null);
         }
     }
 }

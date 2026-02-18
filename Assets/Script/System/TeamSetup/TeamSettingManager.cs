@@ -25,11 +25,8 @@ public class TeamSettingManager : MonoBehaviour
             return;
         }
 
-        // ★ここ：編成をセーブに反映してから遷移
-        if (GameState.Instance != null)
-        {
-            GameState.Instance.SaveTeamFromRuntime();
-        }
+        // ★重要：ランタイム編成 → セーブに同期
+        if (GameState.Instance != null) GameState.Instance.SaveTeamFromRuntime();
 
         SceneManager.LoadScene("BattleScene");
     }
